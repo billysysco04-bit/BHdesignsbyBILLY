@@ -968,27 +968,68 @@ async def export_menu(job_id: str, format: str = "json", user: dict = Depends(ge
     if not job:
         raise HTTPException(status_code=404, detail="Menu job not found")
     
+    # Add food cost % to each item
+    items = job.get("items", [])
+    for item in items:
+        current_price = item.get("current_price", 0)
+        food_cost = item.get("food_cost", 0)
+        if current_price > 0:
+            item["food_cost_pct"] = round((food_cost / current_price) * 100, 1)
+        else:
+            item["food_cost_pct"] = 0
+    
     if format == "json":
+        # Include summary data
+        total_food_cost = sum(item.get("food_cost", 0) for item in items)
+        total_revenue = sum(item.get("current_price", 0) for item in items)
+        job["summary"] = {
+            "total_items": len(items),
+            "total_food_cost": round(total_food_cost, 2),
+            "total_revenue": round(total_revenue, 2),
+            "avg_food_cost_pct": round((total_food_cost / total_revenue * 100) if total_revenue > 0 else 0, 1)
+        }
         return job
     elif format == "csv":
-        # Generate CSV
+        # Generate CSV with food cost %
         import csv
         import io
         
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["Name", "Description", "Current Price", "Food Cost", "Suggested Price", "Approved Price", "Profit"])
+        writer.writerow([
+            "Name", "Description", "Current Price", "Food Cost $", "Food Cost %", 
+            "Suggested Price", "Approved Price", "Profit/Plate", "Competitors"
+        ])
         
-        for item in job.get("items", []):
+        for item in items:
+            # Format competitor info
+            competitors = item.get("competitor_prices", [])
+            competitor_str = "; ".join([
+                f"{c.get('restaurant', 'Unknown')}: ${c.get('price', 0):.2f} ({c.get('distance_miles', 0)}mi)"
+                for c in competitors
+            ]) if competitors else "N/A"
+            
             writer.writerow([
                 item.get("name", ""),
                 item.get("description", ""),
-                item.get("current_price", ""),
-                item.get("food_cost", ""),
-                item.get("suggested_price", ""),
-                item.get("approved_price", ""),
-                item.get("profit_per_plate", "")
+                f"${item.get('current_price', 0):.2f}",
+                f"${item.get('food_cost', 0):.2f}",
+                f"{item.get('food_cost_pct', 0):.1f}%",
+                f"${item.get('suggested_price', 0):.2f}",
+                f"${item.get('approved_price', 0):.2f}" if item.get('approved_price') else "—",
+                f"${item.get('profit_per_plate', 0):.2f}",
+                competitor_str
             ])
+        
+        # Add summary row
+        writer.writerow([])
+        total_food_cost = sum(item.get("food_cost", 0) for item in items)
+        total_revenue = sum(item.get("current_price", 0) for item in items)
+        total_profit = sum(item.get("profit_per_plate", 0) for item in items)
+        avg_food_cost_pct = (total_food_cost / total_revenue * 100) if total_revenue > 0 else 0
+        
+        writer.writerow(["TOTALS", "", f"${total_revenue:.2f}", f"${total_food_cost:.2f}", 
+                        f"{avg_food_cost_pct:.1f}%", "", "", f"${total_profit:.2f}", ""])
         
         return {"csv_data": output.getvalue(), "filename": f"{job['name']}_export.csv"}
     else:
