@@ -1144,6 +1144,139 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
         logger.error(f"Webhook error: {str(e)}")
         return {"status": "error"}
 
+# ============== SUBSCRIPTION ROUTES ==============
+
+@api_router.get("/subscriptions/plans")
+async def get_subscription_plans():
+    """Get all available subscription plans"""
+    return [plan.model_dump() for plan in SUBSCRIPTION_PLANS.values()]
+
+@api_router.post("/subscriptions/checkout")
+async def create_subscription_checkout(plan_id: str, request: Request, user: dict = Depends(get_current_user)):
+    """Create a checkout session for a subscription plan"""
+    if plan_id not in SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+    
+    plan = SUBSCRIPTION_PLANS[plan_id]
+    host_url = str(request.base_url).rstrip('/')
+    frontend_url = os.environ.get('FRONTEND_URL', host_url.replace(':8001', ':3000'))
+    webhook_url = f"{host_url}api/webhook/stripe"
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=plan.price_per_month,
+        currency="usd",
+        success_url=f"{frontend_url}/subscription?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{frontend_url}/subscription",
+        metadata={
+            "user_id": user["id"],
+            "plan_id": plan_id,
+            "type": "subscription",
+            "credits": str(plan.credits_per_month)
+        }
+    )
+    
+    session = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Record transaction
+    await db.payment_transactions.insert_one({
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "user_id": user["id"],
+        "plan_id": plan_id,
+        "type": "subscription",
+        "amount": plan.price_per_month,
+        "credits": plan.credits_per_month,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"checkout_url": session.url, "session_id": session.session_id}
+
+@api_router.get("/subscriptions/status/{session_id}")
+async def get_subscription_status(session_id: str, user: dict = Depends(get_current_user)):
+    """Check subscription payment status"""
+    transaction = await db.payment_transactions.find_one(
+        {"session_id": session_id, "user_id": user["id"], "type": "subscription"},
+        {"_id": 0}
+    )
+    
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+    status = await stripe_checkout.get_checkout_status(session_id)
+    
+    if status.payment_status == "paid" and transaction["status"] != "completed":
+        # Update transaction
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"status": "completed", "payment_status": status.payment_status}}
+        )
+        
+        # Activate subscription and add credits
+        plan = SUBSCRIPTION_PLANS[transaction["plan_id"]]
+        await db.users.update_one(
+            {"id": user["id"]},
+            {
+                "$set": {
+                    "subscription": {
+                        "plan_id": transaction["plan_id"],
+                        "plan_name": plan.name,
+                        "status": "active",
+                        "credits_per_month": plan.credits_per_month,
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                        "next_renewal": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+                    }
+                },
+                "$inc": {"credits": plan.credits_per_month}
+            }
+        )
+        
+        return {
+            "status": "completed", 
+            "credits_added": plan.credits_per_month,
+            "plan_name": plan.name
+        }
+    
+    return {"status": transaction["status"], "payment_status": status.payment_status}
+
+@api_router.get("/subscriptions/current")
+async def get_current_subscription(user: dict = Depends(get_current_user)):
+    """Get user's current subscription status"""
+    user_data = await db.users.find_one({"id": user["id"]}, {"_id": 0, "subscription": 1})
+    subscription = user_data.get("subscription") if user_data else None
+    
+    if subscription and subscription.get("status") == "active":
+        # Check if renewal is due
+        next_renewal = subscription.get("next_renewal")
+        if next_renewal:
+            renewal_date = datetime.fromisoformat(next_renewal.replace('Z', '+00:00'))
+            if renewal_date < datetime.now(timezone.utc):
+                subscription["status"] = "expired"
+                await db.users.update_one(
+                    {"id": user["id"]},
+                    {"$set": {"subscription.status": "expired"}}
+                )
+    
+    return {"subscription": subscription}
+
+@api_router.post("/subscriptions/cancel")
+async def cancel_subscription(user: dict = Depends(get_current_user)):
+    """Cancel user's subscription"""
+    user_data = await db.users.find_one({"id": user["id"]}, {"_id": 0, "subscription": 1})
+    
+    if not user_data or not user_data.get("subscription"):
+        raise HTTPException(status_code=400, detail="No active subscription found")
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"subscription.status": "cancelled", "subscription.cancelled_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Subscription cancelled. You'll retain access until the end of your billing period."}
+
 # ============== EXPORT ROUTES ==============
 
 @api_router.get("/menus/{job_id}/export")
