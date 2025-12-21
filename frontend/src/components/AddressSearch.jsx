@@ -37,12 +37,13 @@ export default function AddressSearch({
       clearTimeout(debounceRef.current);
     }
 
-    if (query.length < 3) {
+    if (query.length < 5) {
       setResults([]);
       setShowDropdown(false);
       return;
     }
 
+    // Only search when user stops typing for 800ms
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
@@ -58,7 +59,7 @@ export default function AddressSearch({
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 800);
 
     return () => {
       if (debounceRef.current) {
