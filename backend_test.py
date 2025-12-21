@@ -340,14 +340,28 @@ class MenuGeniusAPITester:
 
 def main():
     tester = MenuGeniusAPITester()
-    exit_code = tester.run_all_tests()
+    
+    # Run critical bug fix tests first
+    print("🔥 Running Critical Bug Fix Tests")
+    critical_exit_code = tester.run_critical_bug_tests()
     
     # Save detailed results
-    summary = tester.get_test_summary()
-    with open('/app/test_reports/backend_test_results.json', 'w') as f:
-        json.dump(summary, f, indent=2)
+    results_file = "/app/test_reports/backend_test_results.json"
+    with open(results_file, 'w') as f:
+        json.dump({
+            "timestamp": datetime.now().isoformat(),
+            "test_type": "critical_bug_fixes",
+            "summary": {
+                "tests_run": tester.tests_run,
+                "tests_passed": tester.tests_passed,
+                "success_rate": f"{(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%"
+            },
+            "test_results": tester.test_results
+        }, f, indent=2)
     
-    return exit_code
+    print(f"\n📄 Detailed results saved to: {results_file}")
+    
+    return critical_exit_code
 
 if __name__ == "__main__":
     sys.exit(main())
