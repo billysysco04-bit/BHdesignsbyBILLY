@@ -257,26 +257,36 @@ async def get_me(user: dict = Depends(get_current_user)):
 
 @api_router.post("/menus/upload")
 async def upload_menu(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     name: str = "Uploaded Menu",
     location: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
+    """Upload one or more menu files (images or PDFs) for analysis"""
     # Check credits
     if user.get("credits", 0) < 1:
         raise HTTPException(status_code=402, detail="Insufficient credits. Please purchase more credits.")
     
-    # Save uploaded file
-    file_ext = Path(file.filename).suffix.lower()
-    if file_ext not in ['.pdf', '.png', '.jpg', '.jpeg', '.webp']:
-        raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF or image files.")
+    if not files or len(files) == 0:
+        raise HTTPException(status_code=400, detail="No files provided")
     
-    file_id = str(uuid.uuid4())
-    file_path = UPLOAD_DIR / f"{file_id}{file_ext}"
+    file_paths = []
     
-    async with aiofiles.open(file_path, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    for file in files:
+        # Save each uploaded file
+        file_ext = Path(file.filename).suffix.lower()
+        if file_ext not in ['.pdf', '.png', '.jpg', '.jpeg', '.webp']:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.filename}. Please upload PDF or image files.")
+        
+        file_id = str(uuid.uuid4())
+        file_path = UPLOAD_DIR / f"{file_id}{file_ext}"
+        
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        file_paths.append(str(file_path))
+        logger.info(f"Saved file: {file.filename} -> {file_path}")
     
     # Create menu job
     job_id = str(uuid.uuid4())
@@ -285,8 +295,8 @@ async def upload_menu(
         "user_id": user["id"],
         "name": name,
         "status": "pending",
-        "file_path": str(file_path),
-        "file_paths": [str(file_path)],  # Support multiple files
+        "file_path": file_paths[0] if file_paths else None,  # Legacy support
+        "file_paths": file_paths,  # All uploaded files
         "items": [],
         "location": location or user.get("location"),
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -297,7 +307,8 @@ async def upload_menu(
     # Deduct credit
     await db.users.update_one({"id": user["id"]}, {"$inc": {"credits": -1}})
     
-    return {"job_id": job_id, "message": "Menu uploaded successfully. Analysis will begin shortly."}
+    logger.info(f"Created job {job_id} with {len(file_paths)} file(s)")
+    return {"job_id": job_id, "message": f"Menu uploaded successfully ({len(file_paths)} page(s)). Analysis will begin shortly.", "total_pages": len(file_paths)}
 
 @api_router.post("/menus/{job_id}/add-page")
 async def add_menu_page(
@@ -1056,6 +1067,8 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
 
 @api_router.get("/menus/{job_id}/export")
 async def export_menu(job_id: str, format: str = "json", user: dict = Depends(get_current_user)):
+    from fastapi.responses import Response
+    
     job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Menu job not found")
@@ -1070,6 +1083,8 @@ async def export_menu(job_id: str, format: str = "json", user: dict = Depends(ge
         else:
             item["food_cost_pct"] = 0
     
+    menu_name = job.get('name', 'menu').replace(' ', '_').replace('/', '-')[:50]
+    
     if format == "json":
         # Include summary data
         total_food_cost = sum(item.get("food_cost", 0) for item in items)
@@ -1080,7 +1095,16 @@ async def export_menu(job_id: str, format: str = "json", user: dict = Depends(ge
             "total_revenue": round(total_revenue, 2),
             "avg_food_cost_pct": round((total_food_cost / total_revenue * 100) if total_revenue > 0 else 0, 1)
         }
-        return job
+        
+        # Return as downloadable file
+        json_content = json.dumps(job, indent=2)
+        return Response(
+            content=json_content,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="{menu_name}_export.json"'
+            }
+        )
     elif format == "csv":
         # Generate CSV with food cost %
         import csv
@@ -1123,7 +1147,16 @@ async def export_menu(job_id: str, format: str = "json", user: dict = Depends(ge
         writer.writerow(["TOTALS", "", f"${total_revenue:.2f}", f"${total_food_cost:.2f}", 
                         f"{avg_food_cost_pct:.1f}%", "", "", f"${total_profit:.2f}", ""])
         
-        return {"csv_data": output.getvalue(), "filename": f"{job['name']}_export.csv"}
+        csv_content = output.getvalue()
+        
+        # Return as downloadable file with BOM for Excel compatibility
+        return Response(
+            content="\ufeff" + csv_content,
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{menu_name}_export.csv"'
+            }
+        )
     else:
         raise HTTPException(status_code=400, detail="Unsupported export format")
 
