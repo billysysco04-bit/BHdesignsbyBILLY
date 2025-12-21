@@ -34,7 +34,7 @@ class MenuGeniusAPITester:
         if details:
             print(f"    {details}")
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, files=None, headers=None):
         """Run a single API test"""
         url = f"{self.api_url}/{endpoint}"
         test_headers = {'Content-Type': 'application/json'}
@@ -44,12 +44,19 @@ class MenuGeniusAPITester:
         
         if headers:
             test_headers.update(headers)
+        
+        # Remove Content-Type for file uploads
+        if files:
+            test_headers.pop('Content-Type', None)
 
         try:
             if method == 'GET':
                 response = requests.get(url, headers=test_headers, timeout=30)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=test_headers, timeout=30)
+                if files:
+                    response = requests.post(url, files=files, data=data, headers=test_headers, timeout=60)
+                else:
+                    response = requests.post(url, json=data, headers=test_headers, timeout=30)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=test_headers, timeout=30)
 
