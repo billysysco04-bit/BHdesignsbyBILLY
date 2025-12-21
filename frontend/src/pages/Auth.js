@@ -51,7 +51,10 @@ export default function Auth() {
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-8">
             <ChefHat className="w-10 h-10 text-charcoal" />
-            <span className="font-playfair text-3xl font-bold text-charcoal">Menu Maker</span>
+            <div className="flex flex-col">
+              <span className="font-playfair text-3xl font-bold text-charcoal leading-tight">MenuMaker</span>
+              <span className="text-xs text-neutral-500 -mt-1">by BHdesignsbyBILLY</span>
+            </div>
           </div>
 
           {/* Title */}

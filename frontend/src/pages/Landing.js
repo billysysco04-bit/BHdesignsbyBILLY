@@ -14,7 +14,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <ChefHat className="w-8 h-8 text-charcoal" />
-            <span className="font-playfair text-2xl font-bold text-charcoal">Menu Maker</span>
+            <div className="flex flex-col">
+              <span className="font-playfair text-2xl font-bold text-charcoal leading-tight">MenuMaker</span>
+              <span className="text-xs text-neutral-500 -mt-1">by BHdesignsbyBILLY</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -194,7 +197,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-neutral-200 bg-white py-8">
         <div className="max-w-7xl mx-auto px-6 text-center text-neutral-600">
-          <p>&copy; 2025 Menu Maker. All rights reserved.</p>
+          <p>&copy; 2025 MenuMaker by BHdesignsbyBILLY. All rights reserved.</p>
         </div>
       </footer>
     </div>
