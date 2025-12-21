@@ -438,47 +438,6 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
             current_price = float(item.get("current_price", 0))
             food_cost = float(item.get("food_cost", 0))
             profit = current_price - food_cost
-            
-            # Calculate suggested price (targeting 30% food cost ratio)
-            suggested_price = round(food_cost / 0.30, 2) if food_cost > 0 else current_price
-            
-            processed_item = {
-                "id": item_id,
-                "name": item.get("name", "Unknown Item"),
-                "description": item.get("description"),
-                "current_price": current_price,
-                "suggested_price": suggested_price,
-                "approved_price": None,
-                "food_cost": food_cost,
-                "profit_per_plate": round(profit, 2),
-                "ingredients": item.get("ingredients", []),
-                "competitor_prices": [],
-                "price_decision": None
-            }
-            processed_items.append(processed_item)
-            total_food_cost += food_cost
-            total_profit += profit
-        
-        # Update job with results
-        await db.menu_jobs.update_one(
-            {"id": job_id},
-            {
-                "$set": {
-                    "status": "completed",
-                    "items": processed_items,
-                    "total_food_cost": round(total_food_cost, 2),
-                    "total_profit": round(total_profit, 2),
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }
-            }
-        )
-        
-        return {"message": "Analysis complete", "items_found": len(processed_items)}
-        
-    except Exception as e:
-        logger.error(f"Analysis error: {str(e)}")
-        await db.menu_jobs.update_one({"id": job_id}, {"$set": {"status": "pending"}})
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @api_router.get("/menus", response_model=List[dict])
 async def get_menus(user: dict = Depends(get_current_user)):
