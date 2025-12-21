@@ -1,23 +1,53 @@
 {
-  "timestamp": "2025-12-21T17:17:02.517917",
+  "timestamp": "2025-12-21T17:17:16.198334",
   "test_type": "critical_bug_fixes",
   "summary": {
-    "tests_run": 2,
-    "tests_passed": 1,
-    "success_rate": "50.0%"
+    "tests_run": 7,
+    "tests_passed": 7,
+    "success_rate": "100.0%"
   },
   "test_results": [
     {
       "test": "Admin Login",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T17:17:02.476315"
+      "timestamp": "2025-12-21T17:17:16.024373"
     },
     {
       "test": "Multi-file Upload",
-      "success": false,
-      "details": "Status: 400 (expected 200) - Unsupported file type: test_menu_1.txt. Please upload PDF or image files.",
-      "timestamp": "2025-12-21T17:17:02.517210"
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T17:17:16.075973"
+    },
+    {
+      "test": "Multi-file Upload Pages",
+      "success": true,
+      "details": "Expected 2 pages, got 2",
+      "timestamp": "2025-12-21T17:17:16.076499"
+    },
+    {
+      "test": "Menu Retrieval",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T17:17:16.118987"
+    },
+    {
+      "test": "Menu File Paths",
+      "success": true,
+      "details": "Expected >=2 file paths, got 2",
+      "timestamp": "2025-12-21T17:17:16.119451"
+    },
+    {
+      "test": "Export CSV",
+      "success": true,
+      "details": "Status: 200, Content-Disposition: attachment; filename=\"Uploaded_Menu_export.csv\", Size: 152 bytes",
+      "timestamp": "2025-12-21T17:17:16.157171"
+    },
+    {
+      "test": "Export JSON",
+      "success": true,
+      "details": "Status: 200, Content-Disposition: attachment; filename=\"Uploaded_Menu_export.json\", Size: 661 bytes",
+      "timestamp": "2025-12-21T17:17:16.197019"
     }
   ]
 }
