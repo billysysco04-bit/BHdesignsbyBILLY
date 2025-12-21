@@ -125,7 +125,134 @@ class MenuGeniusAPITester:
     def test_get_credit_packages(self):
         """Test getting credit packages"""
         response = self.run_test("Get Credit Packages", "GET", "credits/packages", 200)
-        return isinstance(response, list) and len(response) > 0
+        
+        if isinstance(response, list) and len(response) > 0:
+            # Verify expected packages exist
+            package_ids = [pkg.get('id') for pkg in response]
+            expected_packages = ['starter', 'professional', 'enterprise']
+            
+            for expected in expected_packages:
+                if expected not in package_ids:
+                    self.log_test("Credit Package Validation", False, f"Missing package: {expected}")
+                    return False
+            
+            # Verify package structure
+            for pkg in response:
+                required_fields = ['id', 'name', 'credits', 'price']
+                for field in required_fields:
+                    if field not in pkg:
+                        self.log_test("Credit Package Structure", False, f"Missing field: {field}")
+                        return False
+            
+            self.log_test("Credit Package Validation", True, f"Found {len(response)} packages with correct structure")
+            return True
+        
+        return False
+
+    def test_get_subscription_plans(self):
+        """Test getting subscription plans"""
+        response = self.run_test("Get Subscription Plans", "GET", "subscriptions/plans", 200)
+        
+        if isinstance(response, list) and len(response) > 0:
+            # Verify expected plans exist
+            plan_ids = [plan.get('id') for plan in response]
+            expected_plans = ['basic', 'pro', 'business']
+            
+            for expected in expected_plans:
+                if expected not in plan_ids:
+                    self.log_test("Subscription Plan Validation", False, f"Missing plan: {expected}")
+                    return False
+            
+            # Verify plan structure
+            for plan in response:
+                required_fields = ['id', 'name', 'credits_per_month', 'price_per_month', 'features']
+                for field in required_fields:
+                    if field not in plan:
+                        self.log_test("Subscription Plan Structure", False, f"Missing field: {field}")
+                        return False
+            
+            self.log_test("Subscription Plan Validation", True, f"Found {len(response)} plans with correct structure")
+            return True
+        
+        return False
+
+    def test_credit_checkout(self):
+        """Test credit checkout session creation"""
+        if not self.token:
+            self.log_test("Credit Checkout", False, "No authentication token")
+            return False
+        
+        # Test with starter package
+        response = self.run_test(
+            "Credit Checkout Session", 
+            "POST", 
+            "credits/checkout?package_id=starter", 
+            200
+        )
+        
+        if response and 'checkout_url' in response and 'session_id' in response:
+            # Verify checkout URL is from Stripe
+            checkout_url = response['checkout_url']
+            if 'checkout.stripe.com' in checkout_url:
+                self.log_test("Credit Checkout URL Validation", True, "Valid Stripe checkout URL")
+                return True
+            else:
+                self.log_test("Credit Checkout URL Validation", False, f"Invalid checkout URL: {checkout_url}")
+                return False
+        
+        return False
+
+    def test_subscription_checkout(self):
+        """Test subscription checkout session creation"""
+        if not self.token:
+            self.log_test("Subscription Checkout", False, "No authentication token")
+            return False
+        
+        # Test with basic plan
+        response = self.run_test(
+            "Subscription Checkout Session", 
+            "POST", 
+            "subscriptions/checkout?plan_id=basic", 
+            200
+        )
+        
+        if response and 'checkout_url' in response and 'session_id' in response:
+            # Verify checkout URL is from Stripe
+            checkout_url = response['checkout_url']
+            if 'checkout.stripe.com' in checkout_url:
+                self.log_test("Subscription Checkout URL Validation", True, "Valid Stripe checkout URL")
+                return True
+            else:
+                self.log_test("Subscription Checkout URL Validation", False, f"Invalid checkout URL: {checkout_url}")
+                return False
+        
+        return False
+
+    def test_invalid_package_checkout(self):
+        """Test checkout with invalid package ID"""
+        if not self.token:
+            return False
+        
+        self.run_test(
+            "Invalid Package Checkout", 
+            "POST", 
+            "credits/checkout?package_id=invalid", 
+            400
+        )
+        return True
+
+    def test_invalid_plan_checkout(self):
+        """Test checkout with invalid plan ID"""
+        if not self.token:
+            return False
+        
+        self.run_test(
+            "Invalid Plan Checkout", 
+            "POST", 
+            "subscriptions/checkout?plan_id=invalid", 
+            400
+        )
+        return True
 
     def test_get_menus(self):
         """Test getting user menus"""
