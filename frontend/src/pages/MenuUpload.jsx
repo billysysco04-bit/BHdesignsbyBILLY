@@ -8,6 +8,7 @@ import { Label } from "../components/ui/label";
 import { Card, CardContent } from "../components/ui/card";
 import { useAuth, API } from "../App";
 import { toast } from "sonner";
+import AddressSearch from "../components/AddressSearch";
 import {
   ChefHat,
   Upload,
