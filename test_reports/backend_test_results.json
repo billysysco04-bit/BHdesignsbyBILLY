@@ -1,53 +1,113 @@
 {
-  "timestamp": "2025-12-21T19:23:11.668172",
-  "test_type": "critical_bug_fixes",
+  "timestamp": "2025-12-21T19:23:25.822685",
+  "test_type": "full_api_suite_with_stripe",
   "summary": {
-    "tests_run": 7,
-    "tests_passed": 7,
-    "success_rate": "100.0%"
+    "tests_run": 17,
+    "tests_passed": 16,
+    "success_rate": "94.1%"
   },
   "test_results": [
     {
-      "test": "Admin Login",
+      "test": "Health Check",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:11.403457"
+      "timestamp": "2025-12-21T19:23:24.374955"
     },
     {
-      "test": "Multi-file Upload",
+      "test": "Root Endpoint",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:11.464810"
+      "timestamp": "2025-12-21T19:23:24.413392"
     },
     {
-      "test": "Multi-file Upload Pages",
-      "success": true,
-      "details": "Expected 2 pages, got 2",
-      "timestamp": "2025-12-21T19:23:11.465403"
-    },
-    {
-      "test": "Menu Retrieval",
+      "test": "User Registration",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:11.527122"
+      "timestamp": "2025-12-21T19:23:24.694041"
     },
     {
-      "test": "Menu File Paths",
+      "test": "Get Current User",
       "success": true,
-      "details": "Expected >=2 file paths, got 2",
-      "timestamp": "2025-12-21T19:23:11.527942"
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T19:23:24.735066"
     },
     {
-      "test": "Export CSV",
+      "test": "Get Credit Packages",
       "success": true,
-      "details": "Status: 200, Content-Disposition: attachment; filename=\"Uploaded_Menu_export.csv\", Size: 152 bytes",
-      "timestamp": "2025-12-21T19:23:11.581590"
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T19:23:24.778544"
     },
     {
-      "test": "Export JSON",
+      "test": "Credit Package Validation",
       "success": true,
-      "details": "Status: 200, Content-Disposition: attachment; filename=\"Uploaded_Menu_export.json\", Size: 661 bytes",
-      "timestamp": "2025-12-21T19:23:11.664752"
+      "details": "Found 3 packages with correct structure",
+      "timestamp": "2025-12-21T19:23:24.779082"
+    },
+    {
+      "test": "Get Subscription Plans",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T19:23:24.815460"
+    },
+    {
+      "test": "Subscription Plan Validation",
+      "success": true,
+      "details": "Found 3 plans with correct structure",
+      "timestamp": "2025-12-21T19:23:24.816083"
+    },
+    {
+      "test": "Get User Menus",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T19:23:24.857582"
+    },
+    {
+      "test": "Credit Checkout Session",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T19:23:25.263804"
+    },
+    {
+      "test": "Credit Checkout URL Validation",
+      "success": true,
+      "details": "Valid Stripe checkout URL",
+      "timestamp": "2025-12-21T19:23:25.264437"
+    },
+    {
+      "test": "Subscription Checkout Session",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T19:23:25.670106"
+    },
+    {
+      "test": "Subscription Checkout URL Validation",
+      "success": true,
+      "details": "Valid Stripe checkout URL",
+      "timestamp": "2025-12-21T19:23:25.670765"
+    },
+    {
+      "test": "Invalid Package Checkout",
+      "success": true,
+      "details": "Status: 400",
+      "timestamp": "2025-12-21T19:23:25.707929"
+    },
+    {
+      "test": "Invalid Plan Checkout",
+      "success": true,
+      "details": "Status: 400",
+      "timestamp": "2025-12-21T19:23:25.747252"
+    },
+    {
+      "test": "Invalid Endpoint",
+      "success": true,
+      "details": "Status: 404",
+      "timestamp": "2025-12-21T19:23:25.781391"
+    },
+    {
+      "test": "Unauthorized Access",
+      "success": false,
+      "details": "Status: 403 (expected 401) - Not authenticated",
+      "timestamp": "2025-12-21T19:23:25.821961"
     }
   ]
 }
