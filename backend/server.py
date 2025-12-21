@@ -700,50 +700,6 @@ async def search_location(query: str, user: dict = Depends(get_current_user)):
     
     return {"results": []}
 
-@api_router.post("/location/validate")
-async def validate_location(address: str, user: dict = Depends(get_current_user)):
-    """Validate and get details for a specific address"""
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"validate-{user['id']}",
-            system_message="""You are an address validation assistant. Given an address, 
-            validate it and return detailed location information.
-            
-            Return JSON:
-            {
-                "valid": true/false,
-                "formatted_address": "Properly formatted address",
-                "city": "City",
-                "state": "State",
-                "zip_code": "ZIP",
-                "country": "USA",
-                "latitude": 40.7128,
-                "longitude": -74.0060,
-                "market_info": {
-                    "population": "estimated city population",
-                    "market_type": "urban/suburban/rural",
-                    "avg_restaurant_density": "high/medium/low"
-                }
-            }
-            """
-        ).with_model("gemini", "gemini-2.5-flash")
-        
-        message = UserMessage(text=f"Validate and get details for this address: {address}")
-        response = await chat.send_message(message)
-        
-        clean_response = response.strip()
-        if clean_response.startswith("```"):
-            clean_response = clean_response.split("```")[1]
-            if clean_response.startswith("json"):
-                clean_response = clean_response[4:]
-        
-        return json.loads(clean_response)
-        
-    except Exception as e:
-        logger.error(f"Location validation error: {str(e)}")
-        return {"valid": False, "error": str(e)}
-
 # ============== PRICE COMPARISON & ANALYTICS ==============
 
 @api_router.get("/analytics/price-history")
