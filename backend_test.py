@@ -137,6 +137,151 @@ class MenuGeniusAPITester:
         self.run_test("Invalid Endpoint", "GET", "nonexistent", 404)
         return True
 
+    def test_admin_login(self):
+        """Test admin auto-login for critical bug testing"""
+        success, response = self.run_test(
+            "Admin Login",
+            "GET",
+            "auth/admin-login",
+            200
+        )
+        if success and 'access_token' in response:
+            self.token = response['access_token']
+            self.user_id = response['user']['id']
+            return True
+        return False
+
+    def test_multi_file_upload(self):
+        """Test multi-file upload functionality - CRITICAL BUG FIX"""
+        if not self.token:
+            self.log_test("Multi-file Upload", False, "No authentication token")
+            return None
+
+        # Create test files
+        test_files = []
+        try:
+            # Create temporary test files
+            for i in range(2):
+                file_content = f"Test menu content {i+1}\nItem 1: Burger ${10 + i}.99\nItem 2: Fries ${5 + i}.99"
+                test_files.append(('files', (f'test_menu_{i+1}.txt', file_content, 'text/plain')))
+            
+            # Test multi-file upload
+            form_data = {
+                'name': 'Multi-Page Test Menu',
+                'location': 'New York, NY'
+            }
+            
+            success, response = self.run_test(
+                "Multi-file Upload",
+                "POST", 
+                "menus/upload",
+                200,
+                data=form_data,
+                files=test_files
+            )
+            
+            if success:
+                job_id = response.get('job_id')
+                total_pages = response.get('total_pages', 0)
+                self.log_test("Multi-file Upload Pages", total_pages == 2, f"Expected 2 pages, got {total_pages}")
+                return job_id
+            return None
+            
+        except Exception as e:
+            self.log_test("Multi-file Upload", False, f"Exception: {str(e)}")
+            return None
+
+    def test_export_functionality(self, job_id):
+        """Test export CSV and JSON functionality - CRITICAL BUG FIX"""
+        if not job_id or not self.token:
+            self.log_test("Export Test", False, "No job ID or token")
+            return False
+
+        # Test CSV export
+        try:
+            csv_url = f"{self.base_url}/api/menus/{job_id}/export?format=csv"
+            csv_response = requests.get(csv_url, headers={'Authorization': f'Bearer {self.token}'}, timeout=30)
+            
+            csv_success = (csv_response.status_code == 200 and 
+                          'attachment' in csv_response.headers.get('Content-Disposition', '') and
+                          len(csv_response.content) > 0)
+            
+            csv_details = f"Status: {csv_response.status_code}, Content-Disposition: {csv_response.headers.get('Content-Disposition', 'None')}, Size: {len(csv_response.content)} bytes"
+            self.log_test("Export CSV", csv_success, csv_details)
+            
+        except Exception as e:
+            self.log_test("Export CSV", False, f"Exception: {str(e)}")
+            csv_success = False
+
+        # Test JSON export
+        try:
+            json_url = f"{self.base_url}/api/menus/{job_id}/export?format=json"
+            json_response = requests.get(json_url, headers={'Authorization': f'Bearer {self.token}'}, timeout=30)
+            
+            json_success = (json_response.status_code == 200 and 
+                           'attachment' in json_response.headers.get('Content-Disposition', '') and
+                           len(json_response.content) > 0)
+            
+            json_details = f"Status: {json_response.status_code}, Content-Disposition: {json_response.headers.get('Content-Disposition', 'None')}, Size: {len(json_response.content)} bytes"
+            self.log_test("Export JSON", json_success, json_details)
+            
+        except Exception as e:
+            self.log_test("Export JSON", False, f"Exception: {str(e)}")
+            json_success = False
+
+        return csv_success and json_success
+
+    def test_menu_retrieval(self, job_id):
+        """Test menu retrieval after upload"""
+        if not job_id or not self.token:
+            return False
+            
+        success, response = self.run_test(
+            "Menu Retrieval",
+            "GET",
+            f"menus/{job_id}",
+            200
+        )
+        
+        if success:
+            file_paths = response.get('file_paths', [])
+            items_count = len(response.get('items', []))
+            self.log_test("Menu File Paths", len(file_paths) >= 2, f"Expected >=2 file paths, got {len(file_paths)}")
+            return True
+        return False
+
+    def run_critical_bug_tests(self):
+        """Run tests for critical bug fixes"""
+        print("🧪 MenuGenius Critical Bug Fix Testing")
+        print("=" * 50)
+        
+        # Test sequence for critical bug fixes
+        print("\n1. Testing Admin Login...")
+        if not self.test_admin_login():
+            print("❌ Admin login failed - cannot proceed with tests")
+            return 1
+
+        print("\n2. Testing Multi-file Upload...")
+        job_id = self.test_multi_file_upload()
+        
+        if job_id:
+            print(f"\n3. Testing Menu Retrieval (Job ID: {job_id})...")
+            self.test_menu_retrieval(job_id)
+            
+            print("\n4. Testing Export Functionality...")
+            self.test_export_functionality(job_id)
+        else:
+            print("❌ Multi-file upload failed - skipping dependent tests")
+
+        # Summary
+        print(f"\n📊 Critical Bug Test Results")
+        print("=" * 30)
+        print(f"Tests Run: {self.tests_run}")
+        print(f"Tests Passed: {self.tests_passed}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+        
+        return 0 if self.tests_passed == self.tests_run else 1
+
     def test_unauthorized_access(self):
         """Test unauthorized access"""
         # Temporarily remove token
