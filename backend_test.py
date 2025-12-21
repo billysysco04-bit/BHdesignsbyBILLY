@@ -171,7 +171,7 @@ class MenuGeniusAPITester:
                 'location': 'New York, NY'
             }
             
-            success, response = self.run_test(
+            response = self.run_test(
                 "Multi-file Upload",
                 "POST", 
                 "menus/upload",
@@ -180,7 +180,7 @@ class MenuGeniusAPITester:
                 files=test_files
             )
             
-            if success:
+            if response:
                 job_id = response.get('job_id')
                 total_pages = response.get('total_pages', 0)
                 self.log_test("Multi-file Upload Pages", total_pages == 2, f"Expected 2 pages, got {total_pages}")
