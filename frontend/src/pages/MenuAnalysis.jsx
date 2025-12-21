@@ -408,7 +408,7 @@ export default function MenuAnalysis() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className="flex flex-wrap gap-3 mb-4">
           <Button
             onClick={handleReanalyze}
             disabled={analyzing}
@@ -436,9 +436,37 @@ export default function MenuAnalysis() {
             ) : (
               <BarChart3 className="w-4 h-4 mr-2" />
             )}
-            Analyze Competitors
+            Analyze Competitors (60mi radius)
           </Button>
         </div>
+
+        {/* Competitor Analysis Info Banner */}
+        {menu.competitor_analysis && (
+          <Card className="bg-blue-500/10 border-blue-500/20 mb-8">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Competitor Analysis: {menu.competitor_analysis.location}
+                  </h3>
+                  <p className="text-xs text-zinc-400 mb-2">
+                    {menu.competitor_analysis.radius_miles}-mile radius • Analyzed {new Date(menu.competitor_analysis.analyzed_at).toLocaleDateString()}
+                  </p>
+                  {menu.competitor_analysis.restaurants_analyzed?.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {menu.competitor_analysis.restaurants_analyzed.map((rest, idx) => (
+                        <span key={idx} className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-300">
+                          {rest.name} ({rest.distance_miles}mi)
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Menu Items */}
         {menu.items?.length === 0 ? (
