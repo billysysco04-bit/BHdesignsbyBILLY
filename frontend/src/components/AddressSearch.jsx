@@ -133,7 +133,7 @@ export default function AddressSearch({
       )}
 
       <p className="text-xs text-zinc-500 mt-2">
-        Start typing a city name (e.g., "Dallas", "Austin", "Miami")
+        Start typing a city name (e.g., Dallas, Austin, Miami)
       </p>
     </div>
   );
