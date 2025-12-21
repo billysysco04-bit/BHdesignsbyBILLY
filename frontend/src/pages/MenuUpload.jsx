@@ -32,8 +32,24 @@ export default function MenuUpload() {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadedJobId, setUploadedJobId] = useState(null);
+  const [error, setError] = useState(null);
+  const fileInputRef = React.useRef(null);
 
-  const onDrop = useCallback((acceptedFiles) => {
+  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+    setError(null);
+    
+    if (rejectedFiles && rejectedFiles.length > 0) {
+      const rejection = rejectedFiles[0];
+      if (rejection.errors[0]?.code === 'file-too-large') {
+        setError("File is too large. Maximum size is 10MB.");
+      } else if (rejection.errors[0]?.code === 'file-invalid-type') {
+        setError("Invalid file type. Please upload PNG, JPG, JPEG, WebP, or PDF.");
+      } else {
+        setError("Could not upload file. Please try again.");
+      }
+      return;
+    }
+    
     const selectedFile = acceptedFiles[0];
     if (selectedFile) {
       setFile(selectedFile);
@@ -54,6 +70,14 @@ export default function MenuUpload() {
       }
     }
   }, [menuName]);
+
+  // Manual file selection handler
+  const handleManualFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      onDrop([selectedFile], []);
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
