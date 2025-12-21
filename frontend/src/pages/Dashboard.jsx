@@ -161,7 +161,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -204,6 +204,29 @@ export default function Dashboard() {
                   <p className="text-sm text-zinc-400">View all analyses</p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <Card 
+              data-testid="analytics-card"
+              className="bg-gradient-to-br from-violet-500/10 to-violet-500/5 border-violet-500/20 hover:border-violet-500/40 transition-all cursor-pointer group"
+              onClick={() => navigate("/analytics")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BarChart3 className="w-7 h-7 text-violet-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Analytics</h3>
+                  <p className="text-sm text-zinc-400">Compare & track profits</p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-violet-400 group-hover:translate-x-1 transition-transform" />
               </CardContent>
             </Card>
           </motion.div>
