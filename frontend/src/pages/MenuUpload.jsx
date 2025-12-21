@@ -396,19 +396,13 @@ export default function MenuUpload() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location" className="text-zinc-300">Location (for competitor analysis)</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                <Input
-                  id="location"
-                  data-testid="location-input"
-                  placeholder="e.g., Austin, TX"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="pl-11 h-12 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-              </div>
-              <p className="text-xs text-zinc-500">Used to find competitor pricing within 60 miles</p>
+              <Label className="text-zinc-300">Restaurant Location (for competitor analysis)</Label>
+              <AddressSearch
+                value={location}
+                onChange={handleLocationChange}
+                token={token}
+                placeholder="Start typing your restaurant address..."
+              />
             </div>
           </div>
 
