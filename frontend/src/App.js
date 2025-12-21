@@ -1,3 +1,15 @@
+/**
+ * MenuMaker - Professional Menu Creation Platform
+ * Copyright (c) 2025 BHdesignsbyBILLY - Billy Harman
+ * All Rights Reserved.
+ * 
+ * This software is proprietary and confidential.
+ * Owned and controlled 100% by BHdesignsbyBILLY - Billy Harman
+ * 
+ * Unauthorized copying, distribution, modification, public display,
+ * or public performance of this software is strictly prohibited.
+ */
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
