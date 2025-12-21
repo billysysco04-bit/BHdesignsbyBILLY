@@ -442,7 +442,14 @@ class MenuGeniusAPITester:
         # Protected endpoint tests (require auth)
         if self.token:
             self.test_get_credit_packages()
+            self.test_get_subscription_plans()
             self.test_get_menus()
+            
+            # Stripe payment tests
+            self.test_credit_checkout()
+            self.test_subscription_checkout()
+            self.test_invalid_package_checkout()
+            self.test_invalid_plan_checkout()
         
         # Error handling tests
         self.test_invalid_endpoints()
