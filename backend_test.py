@@ -139,13 +139,13 @@ class MenuGeniusAPITester:
 
     def test_admin_login(self):
         """Test admin auto-login for critical bug testing"""
-        success, response = self.run_test(
+        response = self.run_test(
             "Admin Login",
             "GET",
             "auth/admin-login",
             200
         )
-        if success and 'access_token' in response:
+        if response and 'access_token' in response:
             self.token = response['access_token']
             self.user_id = response['user']['id']
             return True
