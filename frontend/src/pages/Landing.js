@@ -196,8 +196,12 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-200 bg-white py-8">
-        <div className="max-w-7xl mx-auto px-6 text-center text-neutral-600">
-          <p>&copy; 2025 MenuMaker by BHdesignsbyBILLY. All rights reserved.</p>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center space-y-2">
+            <p className="text-neutral-600">&copy; 2025 MenuMaker by BHdesignsbyBILLY. All rights reserved.</p>
+            <p className="text-sm text-neutral-500">Owned and controlled 100% by BHdesignsbyBILLY - Billy Harman</p>
+            <p className="text-xs text-neutral-400">Proprietary Software - Unauthorized copying or distribution prohibited</p>
+          </div>
         </div>
       </footer>
     </div>
