@@ -281,6 +281,15 @@ export default function CreditsPage() {
         {/* Info */}
         <div className="mt-12 text-center text-sm text-zinc-500">
           <p>Secure payment powered by Stripe. Credits never expire.</p>
+          <p className="mt-2">
+            Want monthly credits?{" "}
+            <button 
+              onClick={() => navigate("/subscription")}
+              className="text-violet-400 hover:text-violet-300"
+            >
+              View subscription plans
+            </button>
+          </p>
         </div>
       </main>
     </div>
