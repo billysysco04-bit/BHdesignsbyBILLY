@@ -532,17 +532,25 @@ async def analyze_competitors(job_id: str, user: dict = Depends(get_current_user
             api_key=EMERGENT_LLM_KEY,
             session_id=f"competitor-{job_id}",
             system_message=f"""You are a restaurant market analyst. For the given menu items and location ({location}), 
-            provide realistic competitor pricing data from 3-5 fictional but realistic nearby restaurants.
+            provide realistic competitor pricing data from 4-5 nearby restaurants within a 60-mile radius.
+            Create realistic restaurant names that fit the local market.
             Consider local market conditions, restaurant types, and typical pricing strategies.
             
             Return JSON in this format:
             {{
+                "analysis_location": "{location}",
+                "radius_miles": 60,
+                "restaurants_analyzed": [
+                    {{"name": "Restaurant Name", "type": "Casual Dining", "distance_miles": 5.2}}
+                ],
                 "competitors": [
                     {{
                         "item_name": "Item from menu",
                         "competitor_prices": [
-                            {{"restaurant": "Restaurant Name", "price": 12.99, "distance_miles": 2.5}}
-                        ]
+                            {{"restaurant": "Restaurant Name", "price": 12.99, "distance_miles": 5.2}}
+                        ],
+                        "avg_market_price": 13.50,
+                        "price_range": {{"min": 11.99, "max": 15.99}}
                     }}
                 ]
             }}
@@ -565,27 +573,49 @@ async def analyze_competitors(job_id: str, user: dict = Depends(get_current_user
         
         competitor_data = json.loads(clean_response)
         
+        # Extract restaurants list for transparency
+        restaurants_analyzed = competitor_data.get("restaurants_analyzed", [])
+        
         # Update items with competitor data
-        competitor_map = {c["item_name"]: c["competitor_prices"] for c in competitor_data.get("competitors", [])}
+        competitor_map = {c["item_name"]: c for c in competitor_data.get("competitors", [])}
         
         for item in items:
             if item["name"] in competitor_map:
-                item["competitor_prices"] = competitor_map[item["name"]]
+                comp_info = competitor_map[item["name"]]
+                item["competitor_prices"] = comp_info.get("competitor_prices", [])
+                item["avg_market_price"] = comp_info.get("avg_market_price")
+                item["market_price_range"] = comp_info.get("price_range")
                 
                 # Update suggested price based on competitor average
                 if item["competitor_prices"]:
                     avg_competitor = sum(p["price"] for p in item["competitor_prices"]) / len(item["competitor_prices"])
-                    food_cost_ratio = item.get("food_cost", 0) / item["current_price"] if item["current_price"] > 0 else 0.3
+                    food_cost = item.get("food_cost", 0)
                     
-                    # Suggest price that maintains margin but is competitive
-                    item["suggested_price"] = round(max(avg_competitor * 0.95, item.get("food_cost", 0) / 0.30), 2)
+                    # Suggest price: competitive but maintains at least 30% food cost ratio
+                    min_price_for_margin = food_cost / 0.30 if food_cost > 0 else item["current_price"]
+                    item["suggested_price"] = round(max(avg_competitor * 0.97, min_price_for_margin), 2)
         
+        # Store competitor metadata with the job
         await db.menu_jobs.update_one(
             {"id": job_id},
-            {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {
+                "items": items, 
+                "competitor_analysis": {
+                    "location": location,
+                    "radius_miles": 60,
+                    "restaurants_analyzed": restaurants_analyzed,
+                    "analyzed_at": datetime.now(timezone.utc).isoformat()
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
         )
         
-        return {"message": "Competitor analysis complete"}
+        return {
+            "message": "Competitor analysis complete",
+            "location": location,
+            "restaurants_analyzed": restaurants_analyzed,
+            "items_analyzed": len([i for i in items if i.get("competitor_prices")])
+        }
         
     except Exception as e:
         logger.error(f"Competitor analysis error: {str(e)}")
