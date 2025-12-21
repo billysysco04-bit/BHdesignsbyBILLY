@@ -155,6 +155,43 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 # ============== AUTH ROUTES ==============
 
+# Admin credentials
+ADMIN_EMAIL = "admin@menugenius.com"
+ADMIN_PASSWORD = "admin123"
+
+@api_router.get("/auth/admin-login", response_model=TokenResponse)
+async def admin_login():
+    """Auto-login as admin - for development/demo purposes"""
+    # Check if admin exists, create if not
+    admin = await db.users.find_one({"email": ADMIN_EMAIL}, {"_id": 0})
+    
+    if not admin:
+        admin_id = str(uuid.uuid4())
+        admin = {
+            "id": admin_id,
+            "email": ADMIN_EMAIL,
+            "password": hash_password(ADMIN_PASSWORD),
+            "name": "Admin",
+            "business_name": "MenuGenius Admin",
+            "location": "Headquarters",
+            "credits": 9999,  # Unlimited credits for admin
+            "is_admin": True,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(admin)
+    
+    token = create_token(admin["id"])
+    user_response = UserResponse(
+        id=admin["id"],
+        email=admin["email"],
+        name=admin["name"],
+        business_name=admin.get("business_name"),
+        location=admin.get("location"),
+        credits=admin.get("credits", 9999),
+        created_at=admin["created_at"]
+    )
+    return TokenResponse(access_token=token, user=user_response)
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email})
