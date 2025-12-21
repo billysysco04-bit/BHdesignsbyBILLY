@@ -346,6 +346,8 @@ async def add_menu_page(
 
 @api_router.post("/menus/{job_id}/analyze")
 async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
+    import asyncio
+    
     job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Menu job not found")
@@ -360,13 +362,19 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
         file_paths = job.get("file_paths", [job.get("file_path")])
         
         all_items = []
+        max_retries = 3
         
         for page_idx, file_path in enumerate(file_paths):
-            # Initialize AI chat for each page
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=f"menu-{job_id}-page-{page_idx}",
-                system_message="""You are a restaurant menu analysis expert. Analyze the uploaded menu page and extract ALL items with their details.
+            page_items = []
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    # Initialize AI chat for each page with unique session
+                    chat = LlmChat(
+                        api_key=EMERGENT_LLM_KEY,
+                        session_id=f"menu-{job_id}-page-{page_idx}-attempt-{attempt}",
+                        system_message="""You are a restaurant menu analysis expert. Analyze the uploaded menu page and extract ALL items with their details.
                 IMPORTANT: Extract EVERY SINGLE menu item you can find on the page. Do not skip any items.
                 
                 For each item, provide:
@@ -397,38 +405,49 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
                 
                 CRITICAL: Extract ALL items. If a menu has 50 items, return all 50. Do not truncate or summarize.
                 """
-            ).with_model("gemini", "gemini-2.5-flash")
+                    ).with_model("gemini", "gemini-2.5-flash")
+                    
+                    # Prepare file for analysis
+                    mime_type = "application/pdf" if file_path.endswith(".pdf") else "image/jpeg"
+                    if file_path.endswith(".png"):
+                        mime_type = "image/png"
+                    elif file_path.endswith(".webp"):
+                        mime_type = "image/webp"
+                    
+                    file_content = FileContentWithMimeType(file_path=file_path, mime_type=mime_type)
+                    
+                    message = UserMessage(
+                        text=f"Analyze this menu page (page {page_idx + 1} of {len(file_paths)}). Extract EVERY SINGLE menu item with prices, ingredients, and food costs. Do NOT skip any items. Return complete JSON.",
+                        file_contents=[file_content]
+                    )
+                    
+                    response = await chat.send_message(message)
+                    
+                    # Parse response
+                    clean_response = response.strip()
+                    if clean_response.startswith("```"):
+                        clean_response = clean_response.split("```")[1]
+                        if clean_response.startswith("json"):
+                            clean_response = clean_response[4:]
+                    
+                    menu_data = json.loads(clean_response)
+                    page_items = menu_data.get("items", [])
+                    logger.info(f"Page {page_idx + 1}: Found {len(page_items)} items (attempt {attempt + 1})")
+                    break  # Success, exit retry loop
+                    
+                except json.JSONDecodeError as e:
+                    last_error = f"JSON parse error: {str(e)}"
+                    logger.warning(f"Page {page_idx + 1} attempt {attempt + 1}: {last_error}")
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"Page {page_idx + 1} attempt {attempt + 1} failed: {last_error}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
             
-            # Prepare file for analysis
-            mime_type = "application/pdf" if file_path.endswith(".pdf") else "image/jpeg"
-            if file_path.endswith(".png"):
-                mime_type = "image/png"
-            elif file_path.endswith(".webp"):
-                mime_type = "image/webp"
-            
-            file_content = FileContentWithMimeType(file_path=file_path, mime_type=mime_type)
-            
-            message = UserMessage(
-                text=f"Analyze this menu page (page {page_idx + 1} of {len(file_paths)}). Extract EVERY SINGLE menu item with prices, ingredients, and food costs. Do NOT skip any items. Return complete JSON.",
-                file_contents=[file_content]
-            )
-            
-            response = await chat.send_message(message)
-            
-            # Parse response
-            try:
-                clean_response = response.strip()
-                if clean_response.startswith("```"):
-                    clean_response = clean_response.split("```")[1]
-                    if clean_response.startswith("json"):
-                        clean_response = clean_response[4:]
-                
-                menu_data = json.loads(clean_response)
-                page_items = menu_data.get("items", [])
+            if page_items:
                 all_items.extend(page_items)
-                logger.info(f"Page {page_idx + 1}: Found {len(page_items)} items")
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse AI response for page {page_idx + 1}: {response[:500]}")
+            elif last_error:
+                logger.error(f"Failed to analyze page {page_idx + 1} after {max_retries} attempts: {last_error}")
         
         # Process all collected items and add IDs
         processed_items = []
