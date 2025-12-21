@@ -142,31 +142,51 @@ export default function MenuAnalysis() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      let blob, filename;
+      let content, filename, mimeType;
       
       if (format === "json") {
-        blob = new Blob([JSON.stringify(response.data, null, 2)], { type: "application/json" });
-        filename = `${menu.name.replace(/[^a-z0-9]/gi, '_')}_export.json`;
+        content = JSON.stringify(response.data, null, 2);
+        filename = `${(menu.name || 'menu').replace(/[^a-z0-9]/gi, '_')}_export.json`;
+        mimeType = "application/json";
       } else if (format === "csv") {
-        blob = new Blob([response.data.csv_data], { type: "text/csv" });
-        filename = response.data.filename || `${menu.name.replace(/[^a-z0-9]/gi, '_')}_export.csv`;
+        content = response.data.csv_data;
+        filename = response.data.filename || `${(menu.name || 'menu').replace(/[^a-z0-9]/gi, '_')}_export.csv`;
+        mimeType = "text/csv;charset=utf-8";
       }
       
-      // Create download link and trigger download
+      // Create blob and download using multiple methods for browser compatibility
+      const blob = new Blob([content], { type: mimeType });
+      
+      // Method 1: Try using msSaveBlob for IE/Edge
+      if (window.navigator && window.navigator.msSaveBlob) {
+        window.navigator.msSaveBlob(blob, filename);
+        toast.success(`${format.toUpperCase()} exported successfully!`);
+        return;
+      }
+      
+      // Method 2: Create object URL and download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
+      link.style.display = "none";
       link.href = url;
-      link.setAttribute("download", filename);
+      link.download = filename;
+      
+      // Append to body, click, then remove
       document.body.appendChild(link);
-      link.click();
       
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Use setTimeout to ensure the link is in the DOM
+      setTimeout(() => {
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      }, 0);
       
-      toast.success(`${format.toUpperCase()} exported successfully!`);
+      toast.success(`${format.toUpperCase()} exported! Check your downloads folder.`);
     } catch (error) {
-      toast.error("Export failed");
+      console.error("Export error:", error);
+      toast.error("Export failed: " + (error.message || "Unknown error"));
     }
   };
 
