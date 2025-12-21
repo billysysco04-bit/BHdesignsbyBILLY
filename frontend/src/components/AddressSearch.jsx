@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Input } from "./ui/input";
-import { MapPin, Loader2, Check, Search } from "lucide-react";
+import { MapPin, Check, Search } from "lucide-react";
 import { API } from "../App";
 
 export default function AddressSearch({ 
   value, 
   onChange, 
   token, 
-  placeholder = "Enter your restaurant address...",
+  placeholder = "Enter city or address...",
   className = ""
 }) {
   const [query, setQuery] = useState(value || "");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [validating, setValidating] = useState(false);
+  const [selected, setSelected] = useState(false);
   const debounceRef = useRef(null);
   const wrapperRef = useRef(null);
 
@@ -31,19 +30,19 @@ export default function AddressSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounced search
+  // Debounced search - instant for local lookup
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    if (query.length < 5) {
+    if (query.length < 2 || selected) {
       setResults([]);
       setShowDropdown(false);
       return;
     }
 
-    // Only search when user stops typing for 800ms
+    // Short debounce since it's just local lookup now
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
@@ -52,58 +51,35 @@ export default function AddressSearch({
           headers: { Authorization: `Bearer ${token}` }
         });
         setResults(response.data.results || []);
-        setShowDropdown(true);
+        if (response.data.results?.length > 0) {
+          setShowDropdown(true);
+        }
       } catch (error) {
         console.error("Location search error:", error);
         setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 800);
+    }, 150); // Very short debounce - local lookup is instant
 
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, token]);
+  }, [query, token, selected]);
 
-  const handleSelect = async (location) => {
-    setValidating(true);
+  const handleSelect = (location) => {
     setQuery(location.formatted_address);
     setShowDropdown(false);
-    
-    try {
-      // Validate the selected address
-      const response = await axios.post(
-        `${API}/location/validate`,
-        null,
-        {
-          params: { address: location.formatted_address },
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      if (response.data.valid !== false) {
-        setSelectedLocation({
-          ...location,
-          ...response.data
-        });
-        onChange(location.formatted_address, response.data);
-      } else {
-        onChange(location.formatted_address, location);
-      }
-    } catch (error) {
-      onChange(location.formatted_address, location);
-    } finally {
-      setValidating(false);
-    }
+    setSelected(true);
+    onChange(location.formatted_address, location);
   };
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
     setQuery(newValue);
-    setSelectedLocation(null);
+    setSelected(false);
     onChange(newValue, null);
   };
 
@@ -115,15 +91,13 @@ export default function AddressSearch({
           type="text"
           value={query}
           onChange={handleInputChange}
-          onFocus={() => results.length > 0 && setShowDropdown(true)}
+          onFocus={() => results.length > 0 && !selected && setShowDropdown(true)}
           placeholder={placeholder}
           data-testid="location-input"
           className="pl-11 pr-10 h-12 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {loading || validating ? (
-            <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-          ) : selectedLocation ? (
+          {selected ? (
             <Check className="w-5 h-5 text-emerald-400" />
           ) : query.length > 0 ? (
             <Search className="w-5 h-5 text-zinc-500" />
@@ -146,9 +120,11 @@ export default function AddressSearch({
                 <MapPin className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-white font-medium">{location.formatted_address}</p>
-                  <p className="text-sm text-zinc-500">
-                    {location.city}{location.state ? `, ${location.state}` : ""} {location.country}
-                  </p>
+                  {location.city && location.state && (
+                    <p className="text-sm text-zinc-500">
+                      {location.city}, {location.state}
+                    </p>
+                  )}
                 </div>
               </div>
             </button>
@@ -156,24 +132,8 @@ export default function AddressSearch({
         </div>
       )}
 
-      {/* Selected Location Info */}
-      {selectedLocation && selectedLocation.market_info && (
-        <div className="mt-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-          <div className="flex items-center gap-2 text-emerald-400 text-sm">
-            <Check className="w-4 h-4" />
-            <span className="font-medium">Location verified</span>
-          </div>
-          {selectedLocation.market_info && (
-            <p className="text-xs text-zinc-400 mt-1">
-              Market: {selectedLocation.market_info.market_type} • 
-              Restaurant density: {selectedLocation.market_info.avg_restaurant_density}
-            </p>
-          )}
-        </div>
-      )}
-
       <p className="text-xs text-zinc-500 mt-2">
-        Enter your full address for accurate competitor pricing within 60 miles
+        Start typing a city name (e.g., "Dallas", "Austin", "Miami")
       </p>
     </div>
   );
