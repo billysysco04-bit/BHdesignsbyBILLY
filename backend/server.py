@@ -15,7 +15,7 @@ import bcrypt
 import base64
 import json
 import aiofiles
-from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+import google.generativeai as genai
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
@@ -31,9 +31,12 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'menu-genius-secret-key-2024')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
-# LLM Key
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+# API Keys
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+
+# Configure Gemini
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Create the main app
 app = FastAPI(title="MenuGenius API", version="1.0.0")
