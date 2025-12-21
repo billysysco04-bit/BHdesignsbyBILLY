@@ -286,6 +286,7 @@ async def upload_menu(
         "name": name,
         "status": "pending",
         "file_path": str(file_path),
+        "file_paths": [str(file_path)],  # Support multiple files
         "items": [],
         "location": location or user.get("location"),
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -297,6 +298,40 @@ async def upload_menu(
     await db.users.update_one({"id": user["id"]}, {"$inc": {"credits": -1}})
     
     return {"job_id": job_id, "message": "Menu uploaded successfully. Analysis will begin shortly."}
+
+@api_router.post("/menus/{job_id}/add-page")
+async def add_menu_page(
+    job_id: str,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Add additional pages to an existing menu job"""
+    job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Menu job not found")
+    
+    # Save uploaded file
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in ['.pdf', '.png', '.jpg', '.jpeg', '.webp']:
+        raise HTTPException(status_code=400, detail="Unsupported file type.")
+    
+    file_id = str(uuid.uuid4())
+    file_path = UPLOAD_DIR / f"{file_id}{file_ext}"
+    
+    async with aiofiles.open(file_path, 'wb') as f:
+        content = await file.read()
+        await f.write(content)
+    
+    # Add to file_paths list
+    file_paths = job.get("file_paths", [job.get("file_path")])
+    file_paths.append(str(file_path))
+    
+    await db.menu_jobs.update_one(
+        {"id": job_id},
+        {"$set": {"file_paths": file_paths, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": f"Page added. Total pages: {len(file_paths)}", "total_pages": len(file_paths)}
 
 @api_router.post("/menus/{job_id}/analyze")
 async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
