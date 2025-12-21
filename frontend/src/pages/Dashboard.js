@@ -53,10 +53,23 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <ChefHat className="w-8 h-8 text-charcoal" />
-            <span className="font-playfair text-2xl font-bold text-charcoal">Menu Maker</span>
+            <div className="flex flex-col">
+              <span className="font-playfair text-2xl font-bold text-charcoal leading-tight">MenuMaker</span>
+              <span className="text-xs text-neutral-500 -mt-1">by BHdesignsbyBILLY</span>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-neutral-600">Hi, {user?.name}</span>
+            {user?.is_admin && (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin')}
+                data-testid="admin-button"
+                className="rounded-full border-terracotta text-terracotta"
+              >
+                Admin Panel
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={handleLogout}
