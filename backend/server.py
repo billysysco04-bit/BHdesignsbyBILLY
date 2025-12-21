@@ -637,18 +637,23 @@ class LocationSearchResult(BaseModel):
 
 @api_router.get("/location/search")
 async def search_location(query: str, user: dict = Depends(get_current_user)):
-    """Search for locations - uses local lookup for cities, AI for specific addresses"""
-    if not query or len(query) < 3:
+    """Search for locations - instant local lookup only, no AI"""
+    if not query or len(query) < 2:
         return {"results": []}
     
     query_lower = query.lower().strip()
     
-    # First, try to match against known cities (fast, no API call)
+    # Match against known cities (instant, no API call)
     matching_cities = []
     for city_data in US_CITIES:
         city_lower = city_data["city"].lower()
         state_lower = city_data["state"].lower()
-        if query_lower in city_lower or city_lower in query_lower or query_lower in state_lower:
+        full_name = f"{city_lower}, {state_lower}"
+        
+        if (query_lower in city_lower or 
+            query_lower in state_lower or 
+            query_lower in full_name or
+            city_lower.startswith(query_lower)):
             matching_cities.append({
                 "formatted_address": f"{city_data['city']}, {city_data['state']}, USA",
                 "city": city_data["city"],
@@ -658,42 +663,41 @@ async def search_location(query: str, user: dict = Depends(get_current_user)):
                 "longitude": city_data["lng"]
             })
     
-    # If we found city matches, return them (no AI needed)
+    # Sort by relevance (exact matches first)
+    matching_cities.sort(key=lambda x: (
+        0 if x["city"].lower().startswith(query_lower) else 1,
+        len(x["city"])
+    ))
+    
+    # If user entered a specific address with numbers, format it nicely
+    if any(c.isdigit() for c in query) and matching_cities:
+        # Append the street address to the first matching city
+        best_city = matching_cities[0]
+        formatted = f"{query}, {best_city['city']}, {best_city['state']}, USA"
+        return {"results": [{
+            "formatted_address": formatted,
+            "city": best_city["city"],
+            "state": best_city["state"],
+            "country": "USA",
+            "latitude": best_city["latitude"],
+            "longitude": best_city["longitude"]
+        }]}
+    
+    # Return city matches
     if matching_cities:
         return {"results": matching_cities[:5]}
     
-    # For specific addresses (contains numbers), use AI
-    has_numbers = any(c.isdigit() for c in query)
-    if has_numbers:
-        try:
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=f"location-{user['id']}-{uuid.uuid4().hex[:8]}",
-                system_message="""You are a location/address parsing assistant. Given a search query, 
-                return up to 3 valid US location suggestions. Return JSON:
-                {"locations": [{"formatted_address": "Full address", "city": "City", "state": "ST", "country": "USA", "latitude": 40.0, "longitude": -74.0}]}
-                """
-            ).with_model("gemini", "gemini-2.5-flash")
-            
-            message = UserMessage(text=f"Format this US address: {query}")
-            response = await chat.send_message(message)
-            
-            # Parse response
-            clean_response = response.strip()
-            if clean_response.startswith("```"):
-                clean_response = clean_response.split("```")[1]
-                if clean_response.startswith("json"):
-                    clean_response = clean_response[4:]
-            
-            data = json.loads(clean_response)
-            return {"results": data.get("locations", [])}
-            
-        except Exception as e:
-            logger.error(f"Location search AI error: {str(e)}")
-            # Return empty for AI failures
-            return {"results": []}
+    # If no matches, just return what they typed
+    if len(query) > 5:
+        return {"results": [{
+            "formatted_address": f"{query}, USA",
+            "city": query,
+            "state": "",
+            "country": "USA",
+            "latitude": None,
+            "longitude": None
+        }]}
     
-    # For non-address queries that didn't match cities, return empty
     return {"results": []}
 
 @api_router.post("/location/validate")
