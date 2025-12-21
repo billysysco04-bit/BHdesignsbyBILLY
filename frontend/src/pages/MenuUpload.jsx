@@ -31,12 +31,18 @@ export default function MenuUpload() {
   const [previews, setPreviews] = useState([]);
   const [menuName, setMenuName] = useState("");
   const [location, setLocation] = useState(user?.location || "");
+  const [locationData, setLocationData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
+
+  const handleLocationChange = (address, data) => {
+    setLocation(address);
+    setLocationData(data);
+  };
 
   const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'];
   const maxSize = 10 * 1024 * 1024; // 10MB
