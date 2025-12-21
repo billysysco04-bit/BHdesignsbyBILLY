@@ -134,6 +134,9 @@ function App() {
             <Route path="/credits" element={
               <ProtectedRoute><CreditsPage /></ProtectedRoute>
             } />
+            <Route path="/analytics" element={
+              <ProtectedRoute><AnalyticsPage /></ProtectedRoute>
+            } />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
