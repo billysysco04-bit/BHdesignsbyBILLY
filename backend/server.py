@@ -379,7 +379,6 @@ async def add_menu_page(
 @api_router.post("/menus/{job_id}/analyze")
 async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
     import asyncio
-    import base64
     
     job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
     if not job:
