@@ -433,7 +433,7 @@ export default function MenuAnalysis() {
                     </div>
 
                     {/* Price Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
                       <div className="p-3 rounded-lg bg-zinc-800/50">
                         <p className="text-xs text-zinc-500 mb-1">Current Price</p>
                         <p className="text-lg font-mono font-semibold text-white">
@@ -441,10 +441,19 @@ export default function MenuAnalysis() {
                         </p>
                       </div>
                       
-                      <div className="p-3 rounded-lg bg-zinc-800/50">
-                        <p className="text-xs text-zinc-500 mb-1">Food Cost</p>
+                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <p className="text-xs text-amber-400 mb-1">Food Cost $</p>
                         <p className="text-lg font-mono font-semibold text-amber-400">
                           ${item.food_cost?.toFixed(2) || "0.00"}
+                        </p>
+                      </div>
+                      
+                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <p className="text-xs text-amber-400 mb-1">Food Cost %</p>
+                        <p className="text-lg font-mono font-semibold text-amber-400">
+                          {item.current_price > 0 
+                            ? ((item.food_cost / item.current_price) * 100).toFixed(1) 
+                            : "0.0"}%
                         </p>
                       </div>
                       
