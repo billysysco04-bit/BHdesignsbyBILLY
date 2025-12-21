@@ -203,24 +203,54 @@ export default function MenuUpload() {
 
           {/* Upload Zone */}
           {!file ? (
-            <div
-              {...getRootProps()}
-              data-testid="dropzone"
-              className={`dropzone ${isDragActive ? "dragging" : ""} cursor-pointer`}
-            >
-              <input {...getInputProps()} data-testid="file-input" />
-              <div className="flex flex-col items-center">
-                <div className="w-20 h-20 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6">
-                  <Upload className="w-10 h-10 text-blue-400" />
+            <div className="space-y-4">
+              <div
+                {...getRootProps()}
+                data-testid="dropzone"
+                className={`dropzone ${isDragActive ? "dragging" : ""} cursor-pointer`}
+              >
+                <input {...getInputProps()} data-testid="file-input" />
+                <div className="flex flex-col items-center">
+                  <div className="w-20 h-20 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6">
+                    <Upload className="w-10 h-10 text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    {isDragActive ? "Drop your menu here" : "Drag & drop your menu"}
+                  </h3>
+                  <p className="text-zinc-500 mb-4">or click to browse files</p>
+                  <p className="text-sm text-zinc-600">
+                    Supports: PNG, JPG, JPEG, WebP, PDF (max 10MB)
+                  </p>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  {isDragActive ? "Drop your menu here" : "Drag & drop your menu"}
-                </h3>
-                <p className="text-zinc-500 mb-4">or click to browse files</p>
-                <p className="text-sm text-zinc-600">
-                  Supports: PNG, JPG, JPEG, WebP, PDF (max 10MB)
-                </p>
               </div>
+              
+              {/* Fallback file input button */}
+              <div className="text-center">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleManualFileSelect}
+                  accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                  className="hidden"
+                  data-testid="manual-file-input"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800"
+                  data-testid="browse-files-btn"
+                >
+                  <FileImage className="w-4 h-4 mr-2" />
+                  Browse Files Manually
+                </Button>
+              </div>
+              
+              {error && (
+                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
             </div>
           ) : (
             <Card className="bg-zinc-900/50 border-zinc-800">
