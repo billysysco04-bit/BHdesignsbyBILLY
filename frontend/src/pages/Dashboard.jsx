@@ -19,7 +19,8 @@ import {
   LogOut,
   Loader2,
   Coins,
-  BarChart3
+  BarChart3,
+  Crown
 } from "lucide-react";
 
 export default function Dashboard() {
