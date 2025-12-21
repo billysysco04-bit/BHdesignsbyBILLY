@@ -18,7 +18,8 @@ import {
   ArrowRight,
   LogOut,
   Loader2,
-  Coins
+  Coins,
+  BarChart3
 } from "lucide-react";
 
 export default function Dashboard() {
