@@ -1114,10 +1114,30 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
                     {"session_id": event.session_id},
                     {"$set": {"status": "completed", "payment_status": "paid"}}
                 )
-                await db.users.update_one(
-                    {"id": transaction["user_id"]},
-                    {"$inc": {"credits": transaction["credits"]}}
-                )
+                
+                # Handle subscription vs one-time purchase
+                if transaction.get("type") == "subscription":
+                    # Activate subscription
+                    await db.users.update_one(
+                        {"id": transaction["user_id"]},
+                        {
+                            "$set": {
+                                "subscription": {
+                                    "plan_id": transaction["plan_id"],
+                                    "status": "active",
+                                    "started_at": datetime.now(timezone.utc).isoformat(),
+                                    "next_renewal": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+                                }
+                            },
+                            "$inc": {"credits": transaction["credits"]}
+                        }
+                    )
+                else:
+                    # One-time credit purchase
+                    await db.users.update_one(
+                        {"id": transaction["user_id"]},
+                        {"$inc": {"credits": transaction["credits"]}}
+                    )
         
         return {"status": "ok"}
     except Exception as e:
