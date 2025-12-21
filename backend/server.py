@@ -371,10 +371,10 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
             for attempt in range(max_retries):
                 try:
                     # Use Gemini for image analysis
-                    # Try gemini-2.5-flash-image first (optimized for images), fallback to gemini-2.5-flash
+                    # Try gemini-2.5-pro first (more stable), fallback to gemini-2.5-flash
                     model_provider = "gemini"
-                    if attempt == 0:
-                        model_name = "gemini-2.5-flash-image"
+                    if attempt < 2:
+                        model_name = "gemini-2.5-pro"
                     else:
                         model_name = "gemini-2.5-flash"
                     
