@@ -217,7 +217,7 @@ export default function AuthPage() {
         {/* Quote */}
         <div className="absolute bottom-12 left-12 right-12">
           <blockquote className="text-2xl text-white font-['Manrope'] font-semibold mb-4">
-            "MenuGenius helped us increase our profit margins by 18% in just one month."
+            MenuGenius helped us increase our profit margins by 18% in just one month.
           </blockquote>
           <cite className="text-zinc-400 not-italic">
             — Sarah Chen, Owner of The Blue Kitchen
