@@ -135,6 +135,9 @@ function App() {
             <Route path="/credits" element={
               <ProtectedRoute><CreditsPage /></ProtectedRoute>
             } />
+            <Route path="/subscription" element={
+              <ProtectedRoute><SubscriptionPage /></ProtectedRoute>
+            } />
             <Route path="/analytics" element={
               <ProtectedRoute><AnalyticsPage /></ProtectedRoute>
             } />
