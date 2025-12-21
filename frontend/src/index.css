@@ -1,115 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-    margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-    font-family:
-        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    
+    /* Custom colors */
+    --brand-primary: 217 91% 60%;
+    --brand-secondary: 160 84% 39%;
+    --profit: 160 84% 39%;
+    --loss: 0 84% 60%;
+    --warning: 38 92% 50%;
+  }
 }
 
 @layer base {
-    :root {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
-    }
-    .dark {
-        --background: 0 0% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 0 0% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 0 0% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 0 0% 14.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 0 0% 14.9%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 0 0% 14.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 14.9%;
-        --input: 0 0% 14.9%;
-        --ring: 0 0% 83.1%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-    }
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', sans-serif;
+  }
+  
+  .font-mono, code, .price, .cost {
+    font-family: 'JetBrains Mono', monospace;
+  }
 }
 
-@layer base {
-    * {
-        @apply border-border;
-    }
-    body {
-        @apply bg-background text-foreground;
-    }
+@layer utilities {
+  .glass {
+    @apply bg-black/40 backdrop-blur-xl border border-white/10;
+  }
+  
+  .glass-card {
+    @apply bg-zinc-900/80 backdrop-blur-md border border-zinc-800/50;
+  }
+  
+  .glow-blue {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+  }
+  
+  .glow-green {
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #3f3f46 transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #3f3f46;
+    border-radius: 3px;
+  }
 }
 
-@layer base {
-    [data-debug-wrapper="true"] {
-        display: contents !important;
-    }
+/* Upload dropzone styles */
+.dropzone {
+  @apply border-2 border-dashed border-zinc-700 rounded-xl p-12 text-center cursor-pointer transition-all duration-300;
+}
 
-    [data-debug-wrapper="true"] > * {
-        margin-left: inherit;
-        margin-right: inherit;
-        margin-top: inherit;
-        margin-bottom: inherit;
-        padding-left: inherit;
-        padding-right: inherit;
-        padding-top: inherit;
-        padding-bottom: inherit;
-        column-gap: inherit;
-        row-gap: inherit;
-        gap: inherit;
-        border-left-width: inherit;
-        border-right-width: inherit;
-        border-top-width: inherit;
-        border-bottom-width: inherit;
-        border-left-style: inherit;
-        border-right-style: inherit;
-        border-top-style: inherit;
-        border-bottom-style: inherit;
-        border-left-color: inherit;
-        border-right-color: inherit;
-        border-top-color: inherit;
-        border-bottom-color: inherit;
-    }
+.dropzone:hover, .dropzone.active {
+  @apply border-blue-500/50 bg-blue-500/5;
+}
+
+.dropzone.dragging {
+  @apply border-blue-400 bg-blue-500/10 scale-[1.02];
+}
+
+/* Data grid styles */
+.data-grid {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Price pill styles */
+.price-pill {
+  @apply px-3 py-1 rounded-full font-mono text-sm font-medium;
+}
+
+.price-pill.profit {
+  @apply bg-emerald-500/20 text-emerald-400;
+}
+
+.price-pill.loss {
+  @apply bg-red-500/20 text-red-400;
+}
+
+.price-pill.neutral {
+  @apply bg-zinc-500/20 text-zinc-400;
+}
+
+/* Status badge styles */
+.status-badge {
+  @apply px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wider;
+}
+
+.status-badge.pending {
+  @apply bg-amber-500/20 text-amber-400;
+}
+
+.status-badge.analyzing {
+  @apply bg-blue-500/20 text-blue-400;
+}
+
+.status-badge.completed {
+  @apply bg-emerald-500/20 text-emerald-400;
+}
+
+.status-badge.approved {
+  @apply bg-violet-500/20 text-violet-400;
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-300;
+}
+
+.card-hover:hover {
+  @apply -translate-y-1 shadow-xl;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+
+/* Button variants */
+.btn-glow {
+  @apply relative overflow-hidden;
+}
+
+.btn-glow::after {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0 -translate-x-full;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Debug wrapper fix */
+[data-debug-wrapper="true"] {
+  display: contents !important;
 }
