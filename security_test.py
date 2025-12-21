@@ -284,10 +284,28 @@ class MenuGeniusSecurityTester:
             self.log_test("FEATURE: Competitor analysis restaurants list", False, "No test menu available")
             return False
         
+        # First check if menu has items (need to analyze first)
+        menu_response, _ = self.make_request("GET", f"menus/{self.test_menu_id}")
+        if not menu_response or not menu_response.get("items"):
+            # Try to analyze the menu first
+            analyze_response, analyze_details = self.make_request("POST", f"menus/{self.test_menu_id}/analyze")
+            if not analyze_response:
+                self.log_test("FEATURE: Competitor analysis restaurants list", False, f"Menu analysis failed: {analyze_details}")
+                return False
+            
+            # Wait for analysis to complete
+            time.sleep(5)
+            
+            # Check again
+            menu_response, _ = self.make_request("GET", f"menus/{self.test_menu_id}")
+            if not menu_response or not menu_response.get("items"):
+                self.log_test("FEATURE: Competitor analysis restaurants list", False, "No menu items after analysis")
+                return False
+        
         response, details = self.make_request("POST", f"menus/{self.test_menu_id}/competitor-analysis")
         
         if not response:
-            self.log_test("FEATURE: Competitor analysis restaurants list", False, "Analysis failed")
+            self.log_test("FEATURE: Competitor analysis restaurants list", False, f"Analysis failed: {details}")
             return False
         
         has_restaurants_analyzed = "restaurants_analyzed" in response
