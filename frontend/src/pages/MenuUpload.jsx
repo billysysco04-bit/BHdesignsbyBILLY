@@ -182,7 +182,7 @@ export default function MenuUpload() {
             <div
               {...getRootProps()}
               data-testid="dropzone"
-              className={`dropzone ${isDragActive ? "dragging" : ""}`}
+              className={`dropzone ${isDragActive ? "dragging" : ""} cursor-pointer`}
             >
               <input {...getInputProps()} data-testid="file-input" />
               <div className="flex flex-col items-center">
