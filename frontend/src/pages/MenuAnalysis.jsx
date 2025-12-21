@@ -343,51 +343,63 @@ export default function MenuAnalysis() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats Overview - Real-time updates */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Card className="bg-zinc-900/50 border-zinc-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Utensils className="w-5 h-5 text-blue-400" />
-                <span className="text-zinc-400">Total Items</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Utensils className="w-4 h-4 text-blue-400" />
+                <span className="text-xs text-zinc-400">Total Items</span>
               </div>
-              <p className="text-3xl font-bold text-white font-['JetBrains_Mono']">
+              <p className="text-2xl font-bold text-white font-['JetBrains_Mono']">
                 {totalItems}
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-zinc-900/50 border-zinc-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <DollarSign className="w-5 h-5 text-amber-400" />
-                <span className="text-zinc-400">Total Food Cost</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-amber-400" />
+                <span className="text-xs text-zinc-400">Total Food Cost</span>
               </div>
-              <p className="text-3xl font-bold text-white font-['JetBrains_Mono']">
-                ${menu.total_food_cost?.toFixed(2) || "0.00"}
+              <p className="text-2xl font-bold text-amber-400 font-['JetBrains_Mono']">
+                ${totals.totalFoodCost}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4 text-amber-400" />
+                <span className="text-xs text-amber-400">Avg Food Cost %</span>
+              </div>
+              <p className="text-2xl font-bold text-amber-400 font-['JetBrains_Mono']">
+                {totals.avgFoodCostPct}%
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-emerald-500/10 border-emerald-500/30">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs text-emerald-400">Total Profit</span>
+              </div>
+              <p className={`text-2xl font-bold font-['JetBrains_Mono'] ${getProfitColor(parseFloat(totals.totalProfit))}`}>
+                ${totals.totalProfit}
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-zinc-900/50 border-zinc-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
-                <span className="text-zinc-400">Total Profit</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Check className="w-4 h-4 text-violet-400" />
+                <span className="text-xs text-zinc-400">Decisions</span>
               </div>
-              <p className={`text-3xl font-bold font-['JetBrains_Mono'] ${getProfitColor(menu.total_profit)}`}>
-                ${menu.total_profit?.toFixed(2) || "0.00"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-zinc-900/50 border-zinc-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Target className="w-5 h-5 text-violet-400" />
-                <span className="text-zinc-400">Decisions Made</span>
-              </div>
-              <p className="text-3xl font-bold text-white font-['JetBrains_Mono']">
+              <p className="text-2xl font-bold text-white font-['JetBrains_Mono']">
                 {decidedItems}/{totalItems}
               </p>
             </CardContent>
