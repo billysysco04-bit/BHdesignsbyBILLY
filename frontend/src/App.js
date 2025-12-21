@@ -1,51 +1,140 @@
-import { useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { Toaster, toast } from "sonner";
+
+// Pages
+import LandingPage from "./pages/LandingPage";
+import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
+import MenuUpload from "./pages/MenuUpload";
+import MenuAnalysis from "./pages/MenuAnalysis";
+import SavedMenus from "./pages/SavedMenus";
+import CreditsPage from "./pages/CreditsPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+export const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+// Auth Context
+const AuthContext = createContext(null);
+
+export const useAuth = () => useContext(AuthContext);
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (token) {
+        try {
+          const response = await axios.get(`${API}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setUser(response.data);
+        } catch (error) {
+          localStorage.removeItem("token");
+          setToken(null);
+        }
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, [token]);
+
+  const login = async (email, password) => {
+    const response = await axios.post(`${API}/auth/login`, { email, password });
+    const { access_token, user } = response.data;
+    localStorage.setItem("token", access_token);
+    setToken(access_token);
+    setUser(user);
+    return user;
+  };
+
+  const register = async (data) => {
+    const response = await axios.post(`${API}/auth/register`, data);
+    const { access_token, user } = response.data;
+    localStorage.setItem("token", access_token);
+    setToken(access_token);
+    setUser(user);
+    return user;
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+  };
+
+  const refreshUser = async () => {
+    if (token) {
+      const response = await axios.get(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUser(response.data);
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
   );
+};
+
+// Protected Route
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return children;
 };
 
 function App() {
   return (
-    <div className="App">
+    <div className="min-h-screen bg-[#09090b]">
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <Toaster 
+            position="top-right" 
+            theme="dark" 
+            richColors 
+            closeButton
+          />
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute><Dashboard /></ProtectedRoute>
+            } />
+            <Route path="/upload" element={
+              <ProtectedRoute><MenuUpload /></ProtectedRoute>
+            } />
+            <Route path="/menu/:jobId" element={
+              <ProtectedRoute><MenuAnalysis /></ProtectedRoute>
+            } />
+            <Route path="/menus" element={
+              <ProtectedRoute><SavedMenus /></ProtectedRoute>
+            } />
+            <Route path="/credits" element={
+              <ProtectedRoute><CreditsPage /></ProtectedRoute>
+            } />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </div>
   );
