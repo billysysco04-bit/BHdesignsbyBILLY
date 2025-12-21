@@ -1,0 +1,56 @@
+{
+  "total_tests": 8,
+  "passed_tests": 7,
+  "failed_tests": 1,
+  "success_rate": 87.5,
+  "test_results": [
+    {
+      "test": "Health Check",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T13:11:23.535246"
+    },
+    {
+      "test": "Root Endpoint",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T13:11:23.611275"
+    },
+    {
+      "test": "User Registration",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T13:11:23.921307"
+    },
+    {
+      "test": "Get Current User",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T13:11:23.962418"
+    },
+    {
+      "test": "Get Credit Packages",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T13:11:24.001480"
+    },
+    {
+      "test": "Get User Menus",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-21T13:11:24.044374"
+    },
+    {
+      "test": "Invalid Endpoint",
+      "success": true,
+      "details": "Status: 404",
+      "timestamp": "2025-12-21T13:11:24.083521"
+    },
+    {
+      "test": "Unauthorized Access",
+      "success": false,
+      "details": "Status: 403 (expected 401) - Not authenticated",
+      "timestamp": "2025-12-21T13:11:24.116702"
+    }
+  ]
+}
