@@ -106,6 +106,16 @@ export default function LandingPage() {
             ) : (
               <>
                 <Button 
+                  variant="ghost"
+                  data-testid="admin-login-btn"
+                  onClick={handleAdminLogin}
+                  disabled={adminLoading}
+                  className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                >
+                  {adminLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Admin Access
+                </Button>
+                <Button 
                   variant="ghost" 
                   data-testid="nav-login-btn"
                   onClick={() => navigate("/auth")}
