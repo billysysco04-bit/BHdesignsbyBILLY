@@ -345,69 +345,95 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
     await db.menu_jobs.update_one({"id": job_id}, {"$set": {"status": "analyzing"}})
     
     try:
-        # Initialize AI chat
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"menu-{job_id}",
-            system_message="""You are a restaurant menu analysis expert. Analyze the uploaded menu and extract all items with their details.
-            For each item, provide:
-            1. Item name
-            2. Description (if available)
-            3. Price
-            4. Estimated ingredients with portions
-            5. Estimated food cost based on industry-standard ingredient pricing
-            
-            Return the data as a JSON array with this structure:
-            {
-                "items": [
-                    {
-                        "name": "Item Name",
-                        "description": "Item description",
-                        "current_price": 12.99,
-                        "ingredients": [
-                            {"name": "Ingredient", "portion": "4 oz", "estimated_cost": 1.50}
-                        ],
-                        "food_cost": 4.50
+        # Get all file paths (support multi-page)
+        file_paths = job.get("file_paths", [job.get("file_path")])
+        
+        all_items = []
+        
+        for page_idx, file_path in enumerate(file_paths):
+            # Initialize AI chat for each page
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"menu-{job_id}-page-{page_idx}",
+                system_message="""You are a restaurant menu analysis expert. Analyze the uploaded menu page and extract ALL items with their details.
+                IMPORTANT: Extract EVERY SINGLE menu item you can find on the page. Do not skip any items.
+                
+                For each item, provide:
+                1. Item name (exactly as written on menu)
+                2. Description (if available)
+                3. Price (the actual menu price)
+                4. Estimated ingredients with portions
+                5. Estimated food cost based on industry-standard ingredient pricing
+                
+                Return the data as a JSON array with this structure:
+                {
+                    "items": [
+                        {
+                            "name": "Item Name",
+                            "description": "Item description",
+                            "current_price": 12.99,
+                            "ingredients": [
+                                {"name": "Ingredient", "portion": "4 oz", "estimated_cost": 1.50}
+                            ],
+                            "food_cost": 4.50
+                        }
+                    ],
+                    "page_info": {
+                        "items_found": 25,
+                        "categories": ["Appetizers", "Main Courses", "Desserts"]
                     }
-                ]
-            }
-            """
-        ).with_model("gemini", "gemini-2.5-flash")
-        
-        # Prepare file for analysis
-        file_path = job.get("file_path")
-        mime_type = "application/pdf" if file_path.endswith(".pdf") else "image/jpeg"
-        
-        file_content = FileContentWithMimeType(file_path=file_path, mime_type=mime_type)
-        
-        message = UserMessage(
-            text="Please analyze this menu and extract all items with their prices, estimated ingredients, and food costs. Return as JSON.",
-            file_contents=[file_content]
-        )
-        
-        response = await chat.send_message(message)
-        
-        # Parse response
-        try:
-            # Clean response - remove markdown code blocks if present
-            clean_response = response.strip()
-            if clean_response.startswith("```"):
-                clean_response = clean_response.split("```")[1]
-                if clean_response.startswith("json"):
-                    clean_response = clean_response[4:]
+                }
+                
+                CRITICAL: Extract ALL items. If a menu has 50 items, return all 50. Do not truncate or summarize.
+                """
+            ).with_model("gemini", "gemini-2.5-flash")
             
-            menu_data = json.loads(clean_response)
-            items = menu_data.get("items", [])
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse AI response: {response}")
-            items = []
+            # Prepare file for analysis
+            mime_type = "application/pdf" if file_path.endswith(".pdf") else "image/jpeg"
+            if file_path.endswith(".png"):
+                mime_type = "image/png"
+            elif file_path.endswith(".webp"):
+                mime_type = "image/webp"
+            
+            file_content = FileContentWithMimeType(file_path=file_path, mime_type=mime_type)
+            
+            message = UserMessage(
+                text=f"Analyze this menu page (page {page_idx + 1} of {len(file_paths)}). Extract EVERY SINGLE menu item with prices, ingredients, and food costs. Do NOT skip any items. Return complete JSON.",
+                file_contents=[file_content]
+            )
+            
+            response = await chat.send_message(message)
+            
+            # Parse response
+            try:
+                clean_response = response.strip()
+                if clean_response.startswith("```"):
+                    clean_response = clean_response.split("```")[1]
+                    if clean_response.startswith("json"):
+                        clean_response = clean_response[4:]
+                
+                menu_data = json.loads(clean_response)
+                page_items = menu_data.get("items", [])
+                all_items.extend(page_items)
+                logger.info(f"Page {page_idx + 1}: Found {len(page_items)} items")
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse AI response for page {page_idx + 1}: {response[:500]}")
         
-        # Process items and add IDs
+        # Process all collected items and add IDs
         processed_items = []
         total_food_cost = 0
         total_profit = 0
         
-        for item in items:
+        # Remove duplicates based on name (case-insensitive)
+        seen_names = set()
+        unique_items = []
+        for item in all_items:
+            name_lower = item.get("name", "").lower().strip()
+            if name_lower and name_lower not in seen_names:
+                seen_names.add(name_lower)
+                unique_items.append(item)
+        
+        for item in unique_items:
             item_id = str(uuid.uuid4())
             current_price = float(item.get("current_price", 0))
             food_cost = float(item.get("food_cost", 0))
