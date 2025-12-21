@@ -379,6 +379,7 @@ async def add_menu_page(
 @api_router.post("/menus/{job_id}/analyze")
 async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
     import asyncio
+    import base64
     
     job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
     if not job:
@@ -394,7 +395,14 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
         file_paths = job.get("file_paths", [job.get("file_path")])
         
         all_items = []
-        max_retries = 5  # Increased retries for flaky API
+        max_retries = 5
+        
+        # Model rotation strategy: try different models on failure
+        model_options = [
+            ("openai", "gpt-4o"),        # Primary: OpenAI GPT-4o with vision
+            ("gemini", "gemini-2.5-flash"),  # Fallback 1
+            ("gemini", "gemini-2.5-pro"),    # Fallback 2
+        ]
         
         for page_idx, file_path in enumerate(file_paths):
             page_items = []
@@ -402,49 +410,37 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
             
             for attempt in range(max_retries):
                 try:
-                    # Use Gemini for image analysis
-                    # Try gemini-2.5-pro first (more stable), fallback to gemini-2.5-flash
-                    model_provider = "gemini"
-                    if attempt < 2:
-                        model_name = "gemini-2.5-pro"
-                    else:
-                        model_name = "gemini-2.5-flash"
+                    # Rotate through models
+                    model_idx = attempt % len(model_options)
+                    model_provider, model_name = model_options[model_idx]
                     
                     # Initialize AI chat for each page with unique session
                     chat = LlmChat(
                         api_key=EMERGENT_LLM_KEY,
-                        session_id=f"menu-{job_id}-page-{page_idx}-attempt-{attempt}",
-                        system_message="""You are a restaurant menu analysis expert. Analyze the uploaded menu page and extract ALL items with their details.
-                IMPORTANT: Extract EVERY SINGLE menu item you can find on the page. Do not skip any items.
-                
-                For each item, provide:
-                1. Item name (exactly as written on menu)
-                2. Description (if available)
-                3. Price (the actual menu price)
-                4. Estimated ingredients with portions
-                5. Estimated food cost based on industry-standard ingredient pricing
-                
-                Return the data as a JSON array with this structure:
-                {
-                    "items": [
-                        {
-                            "name": "Item Name",
-                            "description": "Item description",
-                            "current_price": 12.99,
-                            "ingredients": [
-                                {"name": "Ingredient", "portion": "4 oz", "estimated_cost": 1.50}
-                            ],
-                            "food_cost": 4.50
-                        }
-                    ],
-                    "page_info": {
-                        "items_found": 25,
-                        "categories": ["Appetizers", "Main Courses", "Desserts"]
-                    }
-                }
-                
-                CRITICAL: Extract ALL items. If a menu has 50 items, return all 50. Do not truncate or summarize.
-                """
+                        session_id=f"menu-{job_id}-p{page_idx}-a{attempt}",
+                        system_message="""You are a restaurant menu analysis expert. Extract ALL menu items with details.
+
+For each item provide:
+1. Item name (exactly as on menu)
+2. Description (if available)  
+3. Price (actual menu price)
+4. Estimated ingredients with portions
+5. Food cost based on industry pricing
+
+Return JSON:
+{
+    "items": [
+        {
+            "name": "Item Name",
+            "description": "Description",
+            "current_price": 12.99,
+            "ingredients": [{"name": "Ingredient", "portion": "4 oz", "estimated_cost": 1.50}],
+            "food_cost": 4.50
+        }
+    ]
+}
+
+CRITICAL: Extract ALL items. Do not skip any."""
                     ).with_model(model_provider, model_name)
                     
                     logger.info(f"Page {page_idx + 1} attempt {attempt + 1}: Using {model_provider}/{model_name}")
