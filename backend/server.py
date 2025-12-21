@@ -1,3 +1,15 @@
+"""
+MenuMaker - Professional Menu Creation Platform
+Copyright (c) 2025 BHdesignsbyBILLY - Billy Harman
+All Rights Reserved.
+
+This software is proprietary and confidential.
+Owned and controlled 100% by BHdesignsbyBILLY - Billy Harman
+
+Unauthorized copying, distribution, modification, public display,
+or public performance of this software is strictly prohibited.
+"""
+
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -21,7 +33,19 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-app = FastAPI()
+app = FastAPI(
+    title="MenuMaker API",
+    description="Professional Menu Creation Platform - Copyright (c) 2025 BHdesignsbyBILLY - Billy Harman. All Rights Reserved.",
+    version="1.0.0",
+    contact={
+        "name": "Billy Harman",
+        "email": "contact@bhdesignsbybilly.com"
+    },
+    license_info={
+        "name": "Proprietary",
+        "url": "https://menumaker.app/license"
+    }
+)
 api_router = APIRouter(prefix="/api")
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production')
