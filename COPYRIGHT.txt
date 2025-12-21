@@ -1,0 +1,70 @@
+COPYRIGHT NOTICE
+================
+
+MenuMaker - Professional Menu Creation Platform
+
+Copyright (c) 2025 BHdesignsbyBILLY - Billy Harman
+All Rights Reserved.
+
+OWNERSHIP
+---------
+This software and all associated intellectual property, including but not limited to:
+- Source code (frontend and backend)
+- Design assets and templates
+- User interface designs
+- Database schemas
+- API architecture
+- Documentation
+- Branding and trademarks
+
+Are owned and controlled 100% by:
+    BHdesignsbyBILLY - Billy Harman
+
+PROPRIETARY SOFTWARE LICENSE
+-----------------------------
+This is proprietary and confidential software. Unauthorized copying, distribution,
+modification, public display, or public performance of this software, via any medium,
+is strictly prohibited.
+
+RESTRICTIONS
+------------
+The following activities are expressly prohibited without prior written permission
+from BHdesignsbyBILLY - Billy Harman:
+
+1. Copying, reproducing, or duplicating the software
+2. Distributing, selling, or sublicensing the software
+3. Modifying, adapting, or creating derivative works
+4. Reverse engineering, decompiling, or disassembling
+5. Removing or altering any copyright notices
+6. Using the software for commercial purposes without license
+7. Publicly displaying or performing the software
+
+PERMITTED USE
+-------------
+Use of this software is permitted only by:
+- Authorized employees and contractors of BHdesignsbyBILLY
+- Licensed end-users with valid subscription
+- Individuals with explicit written permission from Billy Harman
+
+CONTACT INFORMATION
+-------------------
+For licensing inquiries, permissions, or other matters:
+
+Owner: Billy Harman
+Company: BHdesignsbyBILLY
+Application: MenuMaker
+
+DISCLAIMER
+----------
+This software is provided "as is" without warranty of any kind, either expressed
+or implied. The entire risk as to the quality and performance of the software is
+with the user.
+
+ENFORCEMENT
+-----------
+Violations of these terms will be prosecuted to the fullest extent of the law.
+BHdesignsbyBILLY - Billy Harman reserves all rights to seek legal remedies for
+unauthorized use, including but not limited to injunctive relief and monetary damages.
+
+Date: January 2025
+Version: 1.0.0
