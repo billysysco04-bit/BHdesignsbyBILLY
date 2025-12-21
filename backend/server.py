@@ -370,9 +370,13 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
             
             for attempt in range(max_retries):
                 try:
-                    # Use Gemini for image analysis (OpenAI doesn't support file attachments via emergent)
+                    # Use Gemini for image analysis
+                    # Try gemini-2.5-flash-image first (optimized for images), fallback to gemini-2.5-flash
                     model_provider = "gemini"
-                    model_name = "gemini-2.5-flash"
+                    if attempt == 0:
+                        model_name = "gemini-2.5-flash-image"
+                    else:
+                        model_name = "gemini-2.5-flash"
                     
                     # Initialize AI chat for each page with unique session
                     chat = LlmChat(
