@@ -479,16 +479,16 @@ class MenuGeniusAPITester:
 def main():
     tester = MenuGeniusAPITester()
     
-    # Run critical bug fix tests first
-    print("🔥 Running Critical Bug Fix Tests")
-    critical_exit_code = tester.run_critical_bug_tests()
+    # Run full test suite including Stripe integration
+    print("🔥 Running Full API Test Suite (Including Stripe Integration)")
+    full_exit_code = tester.run_all_tests()
     
     # Save detailed results
     results_file = "/app/test_reports/backend_test_results.json"
     with open(results_file, 'w') as f:
         json.dump({
             "timestamp": datetime.now().isoformat(),
-            "test_type": "critical_bug_fixes",
+            "test_type": "full_api_suite_with_stripe",
             "summary": {
                 "tests_run": tester.tests_run,
                 "tests_passed": tester.tests_passed,
@@ -499,7 +499,7 @@ def main():
     
     print(f"\n📄 Detailed results saved to: {results_file}")
     
-    return critical_exit_code
+    return full_exit_code
 
 if __name__ == "__main__":
     sys.exit(main())
