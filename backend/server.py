@@ -370,20 +370,14 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
             
             for attempt in range(max_retries):
                 try:
-                    # Use OpenAI GPT-4o for more stable performance
-                    # Switch model on retry if first attempt fails
-                    if attempt == 0:
-                        model_provider = "openai"
-                        model_name = "gpt-4o"
-                    else:
-                        # Fallback to Gemini on retries
-                        model_provider = "gemini"
-                        model_name = "gemini-2.5-flash"
+                    # Use Gemini for image analysis (OpenAI doesn't support file attachments via emergent)
+                    model_provider = "gemini"
+                    model_name = "gemini-2.5-flash"
                     
                     # Initialize AI chat for each page with unique session
                     chat = LlmChat(
                         api_key=EMERGENT_LLM_KEY,
-                        session_id=f"menu-{job_id}-page-{page_idx}-attempt-{attempt}-{model_provider}",
+                        session_id=f"menu-{job_id}-page-{page_idx}-attempt-{attempt}",
                         system_message="""You are a restaurant menu analysis expert. Analyze the uploaded menu page and extract ALL items with their details.
                 IMPORTANT: Extract EVERY SINGLE menu item you can find on the page. Do not skip any items.
                 
