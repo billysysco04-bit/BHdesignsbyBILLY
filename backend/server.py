@@ -591,6 +591,114 @@ async def analyze_competitors(job_id: str, user: dict = Depends(get_current_user
         logger.error(f"Competitor analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Competitor analysis failed: {str(e)}")
 
+# ============== LOCATION SEARCH ==============
+
+class LocationSearchResult(BaseModel):
+    formatted_address: str
+    city: str
+    state: str
+    country: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+@api_router.get("/location/search")
+async def search_location(query: str, user: dict = Depends(get_current_user)):
+    """Search for locations using AI to parse and validate addresses"""
+    if not query or len(query) < 3:
+        return {"results": []}
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"location-{user['id']}",
+            system_message="""You are a location/address parsing assistant. Given a search query, 
+            return up to 5 valid US location suggestions that match or are similar to the query.
+            Focus on cities, neighborhoods, and specific addresses.
+            
+            Return JSON in this format:
+            {
+                "locations": [
+                    {
+                        "formatted_address": "Full formatted address",
+                        "city": "City name",
+                        "state": "State abbreviation",
+                        "country": "USA",
+                        "latitude": 40.7128,
+                        "longitude": -74.0060
+                    }
+                ]
+            }
+            
+            If the query is a partial city name, suggest matching cities.
+            If it's a full address, validate and format it properly.
+            Always include realistic latitude/longitude coordinates.
+            """
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        message = UserMessage(text=f"Search for locations matching: {query}")
+        response = await chat.send_message(message)
+        
+        # Parse response
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        
+        data = json.loads(clean_response)
+        return {"results": data.get("locations", [])}
+        
+    except Exception as e:
+        logger.error(f"Location search error: {str(e)}")
+        # Return basic suggestions as fallback
+        return {"results": [
+            {"formatted_address": f"{query}, USA", "city": query, "state": "", "country": "USA"}
+        ]}
+
+@api_router.post("/location/validate")
+async def validate_location(address: str, user: dict = Depends(get_current_user)):
+    """Validate and get details for a specific address"""
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"validate-{user['id']}",
+            system_message="""You are an address validation assistant. Given an address, 
+            validate it and return detailed location information.
+            
+            Return JSON:
+            {
+                "valid": true/false,
+                "formatted_address": "Properly formatted address",
+                "city": "City",
+                "state": "State",
+                "zip_code": "ZIP",
+                "country": "USA",
+                "latitude": 40.7128,
+                "longitude": -74.0060,
+                "market_info": {
+                    "population": "estimated city population",
+                    "market_type": "urban/suburban/rural",
+                    "avg_restaurant_density": "high/medium/low"
+                }
+            }
+            """
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        message = UserMessage(text=f"Validate and get details for this address: {address}")
+        response = await chat.send_message(message)
+        
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = clean_response.split("```")[1]
+            if clean_response.startswith("json"):
+                clean_response = clean_response[4:]
+        
+        return json.loads(clean_response)
+        
+    except Exception as e:
+        logger.error(f"Location validation error: {str(e)}")
+        return {"valid": False, "error": str(e)}
+
 # ============== PRICE COMPARISON & ANALYTICS ==============
 
 @api_router.get("/analytics/price-history")
