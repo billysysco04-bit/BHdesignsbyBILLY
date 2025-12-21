@@ -14,6 +14,7 @@ Build a comprehensive menu management application that allows users to import ex
 - **Pricing Engine**: Food cost calculation, profit analysis, pricing suggestions
 - **Payment System**: Stripe integration with credit packages (Starter/Professional/Enterprise)
 - **Export**: JSON/CSV export functionality
+- **Analytics & Comparison**: Price history tracking, profit trends, snapshot comparison
 
 ### Frontend (React + Tailwind + Shadcn)
 - **Landing Page**: Hero section, features, how it works, CTA
@@ -23,15 +24,17 @@ Build a comprehensive menu management application that allows users to import ex
 - **Menu Analysis**: Item cards with pricing decisions (maintain/increase/decrease/custom)
 - **Saved Menus**: List view with search, filters, delete functionality  
 - **Credits Page**: Package selection, Stripe checkout integration
+- **Analytics Page**: Profit trends charts, snapshot comparison, top performing items
 
 ### Database Collections
 - `users`: User accounts with credits balance
 - `menu_jobs`: Menu analysis jobs with items
 - `payment_transactions`: Credit purchase records
+- `price_history`: Pricing snapshots for comparison tracking
 
 ## Tech Stack
 - Backend: FastAPI, Motor (MongoDB async), Pydantic
-- Frontend: React 19, TailwindCSS, Shadcn UI, Framer Motion
+- Frontend: React 19, TailwindCSS, Shadcn UI, Framer Motion, Recharts
 - AI: Gemini 2.5 Flash via emergentintegrations
 - Payments: Stripe via emergentintegrations
 
@@ -48,8 +51,7 @@ Build a comprehensive menu management application that allows users to import ex
 3. **Email Reports**: Send analysis reports via email (Resend/SendGrid)
 4. **Print-Ready Export**: Generate PDF reports with branding
 5. **Bulk Upload**: Support multiple menu files at once
-6. **Analytics Dashboard**: Track pricing changes and profit trends over time
-7. **Team Collaboration**: Multi-user access for restaurant groups
+6. **Team Collaboration**: Multi-user access for restaurant groups
 
 ### Potential Improvements
 - Add menu templates for quick creation
