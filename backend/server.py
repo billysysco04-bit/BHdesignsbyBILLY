@@ -368,6 +368,60 @@ async def generate_description(request: AIDescriptionRequest, user_id: str = Dep
         logging.error(f"AI generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate description: {str(e)}")
 
+# Admin endpoints
+@api_router.get("/admin/users")
+async def get_all_users(admin_id: str = Depends(require_admin)):
+    users = await db.users.find({}, {"_id": 0, "password": 0}).to_list(1000)
+    for user in users:
+        if isinstance(user.get('created_at'), str):
+            user['created_at'] = datetime.fromisoformat(user['created_at'])
+    return users
+
+@api_router.get("/admin/menus")
+async def get_all_menus(admin_id: str = Depends(require_admin)):
+    menus = await db.menus.find({}, {"_id": 0}).to_list(1000)
+    for menu in menus:
+        if isinstance(menu.get('created_at'), str):
+            menu['created_at'] = datetime.fromisoformat(menu['created_at'])
+        if isinstance(menu.get('updated_at'), str):
+            menu['updated_at'] = datetime.fromisoformat(menu['updated_at'])
+    return menus
+
+@api_router.get("/admin/stats")
+async def get_stats(admin_id: str = Depends(require_admin)):
+    total_users = await db.users.count_documents({})
+    total_menus = await db.menus.count_documents({})
+    admin_users = await db.users.count_documents({"is_admin": True})
+    
+    # Get recent activity
+    recent_users = await db.users.find({}, {"_id": 0, "password": 0}).sort([("created_at", -1)]).limit(5).to_list(5)
+    recent_menus = await db.menus.find({}, {"_id": 0}).sort([("created_at", -1)]).limit(5).to_list(5)
+    
+    return {
+        "total_users": total_users,
+        "total_menus": total_menus,
+        "admin_users": admin_users,
+        "recent_users": recent_users,
+        "recent_menus": recent_menus
+    }
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin_id: str = Depends(require_admin)):
+    # Delete user's menus first
+    await db.menus.delete_many({"user_id": user_id})
+    # Delete user
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User and their menus deleted successfully"}
+
+@api_router.delete("/admin/menus/{menu_id}")
+async def admin_delete_menu(menu_id: str, admin_id: str = Depends(require_admin)):
+    result = await db.menus.delete_one({"id": menu_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Menu not found")
+    return {"message": "Menu deleted successfully"}
+
 app.include_router(api_router)
 
 app.add_middleware(
