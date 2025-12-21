@@ -362,7 +362,7 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
         file_paths = job.get("file_paths", [job.get("file_path")])
         
         all_items = []
-        max_retries = 3
+        max_retries = 5  # Increased retries for flaky API
         
         for page_idx, file_path in enumerate(file_paths):
             page_items = []
