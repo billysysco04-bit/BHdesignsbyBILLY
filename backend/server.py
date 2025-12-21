@@ -637,40 +637,46 @@ class LocationSearchResult(BaseModel):
 
 @api_router.get("/location/search")
 async def search_location(query: str, user: dict = Depends(get_current_user)):
-    """Search for locations using AI to parse and validate addresses"""
+    """Search for locations - uses local lookup for cities, AI for specific addresses"""
     if not query or len(query) < 3:
         return {"results": []}
     
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"location-{user['id']}",
-            system_message="""You are a location/address parsing assistant. Given a search query, 
-            return up to 5 valid US location suggestions that match or are similar to the query.
-            Focus on cities, neighborhoods, and specific addresses.
+    query_lower = query.lower().strip()
+    
+    # First, try to match against known cities (fast, no API call)
+    matching_cities = []
+    for city_data in US_CITIES:
+        city_lower = city_data["city"].lower()
+        state_lower = city_data["state"].lower()
+        if query_lower in city_lower or city_lower in query_lower or query_lower in state_lower:
+            matching_cities.append({
+                "formatted_address": f"{city_data['city']}, {city_data['state']}, USA",
+                "city": city_data["city"],
+                "state": city_data["state"],
+                "country": "USA",
+                "latitude": city_data["lat"],
+                "longitude": city_data["lng"]
+            })
+    
+    # If we found city matches, return them (no AI needed)
+    if matching_cities:
+        return {"results": matching_cities[:5]}
+    
+    # For specific addresses (contains numbers), use AI
+    has_numbers = any(c.isdigit() for c in query)
+    if has_numbers:
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"location-{user['id']}-{uuid.uuid4().hex[:8]}",
+                system_message="""You are a location/address parsing assistant. Given a search query, 
+                return up to 3 valid US location suggestions. Return JSON:
+                {"locations": [{"formatted_address": "Full address", "city": "City", "state": "ST", "country": "USA", "latitude": 40.0, "longitude": -74.0}]}
+                """
+            ).with_model("gemini", "gemini-2.5-flash")
             
-            Return JSON in this format:
-            {
-                "locations": [
-                    {
-                        "formatted_address": "Full formatted address",
-                        "city": "City name",
-                        "state": "State abbreviation",
-                        "country": "USA",
-                        "latitude": 40.7128,
-                        "longitude": -74.0060
-                    }
-                ]
-            }
-            
-            If the query is a partial city name, suggest matching cities.
-            If it's a full address, validate and format it properly.
-            Always include realistic latitude/longitude coordinates.
-            """
-        ).with_model("gemini", "gemini-2.5-flash")
-        
-        message = UserMessage(text=f"Search for locations matching: {query}")
-        response = await chat.send_message(message)
+            message = UserMessage(text=f"Format this US address: {query}")
+            response = await chat.send_message(message)
         
         # Parse response
         clean_response = response.strip()
