@@ -13,6 +13,7 @@ import MenuAnalysis from "./pages/MenuAnalysis";
 import SavedMenus from "./pages/SavedMenus";
 import CreditsPage from "./pages/CreditsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
