@@ -593,6 +593,40 @@ async def analyze_competitors(job_id: str, user: dict = Depends(get_current_user
 
 # ============== LOCATION SEARCH ==============
 
+# Common US cities for quick lookup
+US_CITIES = [
+    {"city": "New York", "state": "NY", "lat": 40.7128, "lng": -74.0060},
+    {"city": "Los Angeles", "state": "CA", "lat": 34.0522, "lng": -118.2437},
+    {"city": "Chicago", "state": "IL", "lat": 41.8781, "lng": -87.6298},
+    {"city": "Houston", "state": "TX", "lat": 29.7604, "lng": -95.3698},
+    {"city": "Phoenix", "state": "AZ", "lat": 33.4484, "lng": -112.0740},
+    {"city": "Philadelphia", "state": "PA", "lat": 39.9526, "lng": -75.1652},
+    {"city": "San Antonio", "state": "TX", "lat": 29.4241, "lng": -98.4936},
+    {"city": "San Diego", "state": "CA", "lat": 32.7157, "lng": -117.1611},
+    {"city": "Dallas", "state": "TX", "lat": 32.7767, "lng": -96.7970},
+    {"city": "Austin", "state": "TX", "lat": 30.2672, "lng": -97.7431},
+    {"city": "San Jose", "state": "CA", "lat": 37.3382, "lng": -121.8863},
+    {"city": "Fort Worth", "state": "TX", "lat": 32.7555, "lng": -97.3308},
+    {"city": "Jacksonville", "state": "FL", "lat": 30.3322, "lng": -81.6557},
+    {"city": "Columbus", "state": "OH", "lat": 39.9612, "lng": -82.9988},
+    {"city": "Charlotte", "state": "NC", "lat": 35.2271, "lng": -80.8431},
+    {"city": "San Francisco", "state": "CA", "lat": 37.7749, "lng": -122.4194},
+    {"city": "Indianapolis", "state": "IN", "lat": 39.7684, "lng": -86.1581},
+    {"city": "Seattle", "state": "WA", "lat": 47.6062, "lng": -122.3321},
+    {"city": "Denver", "state": "CO", "lat": 39.7392, "lng": -104.9903},
+    {"city": "Boston", "state": "MA", "lat": 42.3601, "lng": -71.0589},
+    {"city": "Nashville", "state": "TN", "lat": 36.1627, "lng": -86.7816},
+    {"city": "Detroit", "state": "MI", "lat": 42.3314, "lng": -83.0458},
+    {"city": "Portland", "state": "OR", "lat": 45.5051, "lng": -122.6750},
+    {"city": "Las Vegas", "state": "NV", "lat": 36.1699, "lng": -115.1398},
+    {"city": "Memphis", "state": "TN", "lat": 35.1495, "lng": -90.0490},
+    {"city": "Atlanta", "state": "GA", "lat": 33.7490, "lng": -84.3880},
+    {"city": "Miami", "state": "FL", "lat": 25.7617, "lng": -80.1918},
+    {"city": "Orlando", "state": "FL", "lat": 28.5383, "lng": -81.3792},
+    {"city": "Tampa", "state": "FL", "lat": 27.9506, "lng": -82.4572},
+    {"city": "Minneapolis", "state": "MN", "lat": 44.9778, "lng": -93.2650},
+]
+
 class LocationSearchResult(BaseModel):
     formatted_address: str
     city: str
