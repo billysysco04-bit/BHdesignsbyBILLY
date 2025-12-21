@@ -142,22 +142,29 @@ export default function MenuAnalysis() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      let blob, filename;
+      
       if (format === "json") {
-        const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${menu.name}_export.json`;
-        a.click();
+        blob = new Blob([JSON.stringify(response.data, null, 2)], { type: "application/json" });
+        filename = `${menu.name.replace(/[^a-z0-9]/gi, '_')}_export.json`;
       } else if (format === "csv") {
-        const blob = new Blob([response.data.csv_data], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = response.data.filename;
-        a.click();
+        blob = new Blob([response.data.csv_data], { type: "text/csv" });
+        filename = response.data.filename || `${menu.name.replace(/[^a-z0-9]/gi, '_')}_export.csv`;
       }
-      toast.success("Export downloaded!");
+      
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`${format.toUpperCase()} exported successfully!`);
     } catch (error) {
       toast.error("Export failed");
     }
