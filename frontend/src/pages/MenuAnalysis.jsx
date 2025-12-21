@@ -98,10 +98,11 @@ export default function MenuAnalysis() {
   const handleCompetitorAnalysis = async () => {
     setAnalyzingCompetitors(true);
     try {
-      await axios.post(`${API}/menus/${jobId}/competitor-analysis`, {}, {
+      const response = await axios.post(`${API}/menus/${jobId}/competitor-analysis`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success("Competitor analysis complete!");
+      const data = response.data;
+      toast.success(`Competitor analysis complete! Analyzed ${data.restaurants_analyzed?.length || 0} restaurants in ${data.location}`);
       fetchMenu();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Competitor analysis failed");
