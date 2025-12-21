@@ -236,14 +236,14 @@ class MenuGeniusAPITester:
         if not job_id or not self.token:
             return False
             
-        success, response = self.run_test(
+        response = self.run_test(
             "Menu Retrieval",
             "GET",
             f"menus/{job_id}",
             200
         )
         
-        if success:
+        if response:
             file_paths = response.get('file_paths', [])
             items_count = len(response.get('items', []))
             self.log_test("Menu File Paths", len(file_paths) >= 2, f"Expected >=2 file paths, got {len(file_paths)}")
