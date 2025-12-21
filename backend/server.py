@@ -695,13 +695,6 @@ async def search_location(query: str, user: dict = Depends(get_current_user)):
     
     # For non-address queries that didn't match cities, return empty
     return {"results": []}
-        
-    except Exception as e:
-        logger.error(f"Location search error: {str(e)}")
-        # Return basic suggestions as fallback
-        return {"results": [
-            {"formatted_address": f"{query}, USA", "city": query, "state": "", "country": "USA"}
-        ]}
 
 @api_router.post("/location/validate")
 async def validate_location(address: str, user: dict = Depends(get_current_user)):
