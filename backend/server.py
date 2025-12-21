@@ -404,6 +404,9 @@ async def approve_prices(job_id: str, approvals: List[PriceApproval], user: dict
     approval_map = {a.item_id: a for a in approvals}
     
     total_profit = 0
+    total_revenue = 0
+    total_food_cost = 0
+    
     for item in items:
         if item["id"] in approval_map:
             approval = approval_map[item["id"]]
@@ -422,6 +425,8 @@ async def approve_prices(job_id: str, approvals: List[PriceApproval], user: dict
             if item["approved_price"] and item.get("food_cost"):
                 item["profit_per_plate"] = round(item["approved_price"] - item["food_cost"], 2)
                 total_profit += item["profit_per_plate"]
+                total_revenue += item["approved_price"]
+                total_food_cost += item["food_cost"]
     
     await db.menu_jobs.update_one(
         {"id": job_id},
@@ -435,7 +440,33 @@ async def approve_prices(job_id: str, approvals: List[PriceApproval], user: dict
         }
     )
     
-    return {"message": "Prices approved successfully"}
+    # Save price history snapshot for comparison tracking
+    snapshot = {
+        "id": str(uuid.uuid4()),
+        "menu_id": job_id,
+        "user_id": user["id"],
+        "menu_name": job.get("name"),
+        "snapshot_date": datetime.now(timezone.utc).isoformat(),
+        "total_items": len(items),
+        "total_revenue": round(total_revenue, 2),
+        "total_food_cost": round(total_food_cost, 2),
+        "total_profit": round(total_profit, 2),
+        "profit_margin": round((total_profit / total_revenue * 100) if total_revenue > 0 else 0, 1),
+        "items": [
+            {
+                "name": item.get("name"),
+                "original_price": item.get("current_price"),
+                "approved_price": item.get("approved_price"),
+                "food_cost": item.get("food_cost"),
+                "profit": item.get("profit_per_plate"),
+                "decision": item.get("price_decision")
+            }
+            for item in items if item.get("approved_price")
+        ]
+    }
+    await db.price_history.insert_one(snapshot)
+    
+    return {"message": "Prices approved successfully", "snapshot_id": snapshot["id"]}
 
 @api_router.delete("/menus/{job_id}")
 async def delete_menu(job_id: str, user: dict = Depends(get_current_user)):
