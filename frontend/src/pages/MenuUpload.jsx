@@ -92,6 +92,7 @@ export default function MenuUpload() {
   const handleUpload = async () => {
     if (!file) {
       toast.error("Please select a file to upload");
+      setError("Please select a file to upload");
       return;
     }
 
@@ -102,6 +103,7 @@ export default function MenuUpload() {
     }
 
     setUploading(true);
+    setError(null);
 
     try {
       const formData = new FormData();
@@ -109,13 +111,17 @@ export default function MenuUpload() {
       formData.append("name", menuName || "Uploaded Menu");
       if (location) formData.append("location", location);
 
+      console.log("Uploading file:", file.name, file.type, file.size);
+      
       const response = await axios.post(`${API}/menus/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
-        }
+        },
+        timeout: 30000 // 30 second timeout
       });
 
+      console.log("Upload response:", response.data);
       setUploadedJobId(response.data.job_id);
       await refreshUser();
       toast.success("Menu uploaded successfully!");
@@ -123,8 +129,10 @@ export default function MenuUpload() {
       // Start analysis
       handleAnalyze(response.data.job_id);
     } catch (error) {
-      const message = error.response?.data?.detail || "Upload failed";
+      console.error("Upload error:", error);
+      const message = error.response?.data?.detail || error.message || "Upload failed";
       toast.error(message);
+      setError(message);
       setUploading(false);
     }
   };
