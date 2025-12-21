@@ -157,13 +157,12 @@ export default function MenuUpload() {
     setError(null);
 
     try {
-      // Create a combined form data with all files
+      // Create form data with all files using the same key "files"
       const formData = new FormData();
       
-      // For multiple files, we'll upload the first one and include info about others
-      // Or combine PDFs/images on the server side
-      files.forEach((file, index) => {
-        formData.append("file", file);
+      // Backend expects "files" (plural) as the key for multiple file upload
+      files.forEach((file) => {
+        formData.append("files", file);
       });
       formData.append("name", menuName || "Uploaded Menu");
       if (location) formData.append("location", location);
@@ -175,12 +174,12 @@ export default function MenuUpload() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
         },
-        timeout: 60000 // 60 second timeout for larger uploads
+        timeout: 120000 // 2 minute timeout for multiple files
       });
 
       console.log("Upload response:", response.data);
       await refreshUser();
-      toast.success("Menu uploaded successfully!");
+      toast.success(`Menu uploaded successfully! (${response.data.total_pages || files.length} pages)`);
       
       // Start analysis
       handleAnalyze(response.data.job_id);

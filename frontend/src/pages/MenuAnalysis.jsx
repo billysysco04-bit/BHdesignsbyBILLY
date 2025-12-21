@@ -139,51 +139,48 @@ export default function MenuAnalysis() {
 
   const handleExport = async (format) => {
     try {
-      const response = await axios.get(`${API}/menus/${jobId}/export?format=${format}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      // Open the export URL directly - browser will handle the download
+      // due to Content-Disposition: attachment header from backend
+      const exportUrl = `${API}/menus/${jobId}/export?format=${format}`;
+      
+      // Use fetch to get the file as a blob (with auth header)
+      const response = await fetch(exportUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
-      let content, filename, mimeType;
-      
-      if (format === "json") {
-        content = JSON.stringify(response.data, null, 2);
-        filename = `${(menu.name || 'menu').replace(/[^a-z0-9]/gi, '_')}_export.json`;
-        mimeType = "application/json";
-      } else if (format === "csv") {
-        content = response.data.csv_data;
-        filename = response.data.filename || `${(menu.name || 'menu').replace(/[^a-z0-9]/gi, '_')}_export.csv`;
-        mimeType = "text/csv;charset=utf-8";
+      if (!response.ok) {
+        throw new Error('Export failed');
       }
       
-      // Create blob
-      const blob = new Blob(["\ufeff" + content], { type: mimeType }); // BOM for Excel compatibility
+      // Get the filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `${(menu.name || 'menu').replace(/[^a-z0-9]/gi, '_')}_export.${format}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
       
-      // Create download URL
-      const url = URL.createObjectURL(blob);
+      // Get blob from response
+      const blob = await response.blob();
       
-      // Create and configure link
-      const link = document.createElement("a");
+      // Create object URL and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
       link.href = url;
       link.download = filename;
-      link.style.visibility = "hidden";
-      link.style.position = "absolute";
-      link.style.left = "-9999px";
-      
-      // Add to DOM
       document.body.appendChild(link);
-      
-      // Trigger download
       link.click();
       
-      // Cleanup after a delay
-      setTimeout(() => {
-        if (link.parentNode) {
-          link.parentNode.removeChild(link);
-        }
-        URL.revokeObjectURL(url);
-      }, 1000);
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       
-      toast.success(`${format.toUpperCase()} file downloading...`);
+      toast.success(`${format.toUpperCase()} file downloaded successfully!`);
     } catch (error) {
       console.error("Export error:", error);
       toast.error("Export failed: " + (error.message || "Unknown error"));
