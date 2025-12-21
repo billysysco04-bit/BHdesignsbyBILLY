@@ -203,6 +203,42 @@ export default function MenuAnalysis() {
     }));
   };
 
+  // Real-time calculation of totals based on pricing decisions
+  const calculateTotals = () => {
+    if (!menu?.items) return { totalFoodCost: 0, totalProfit: 0, totalRevenue: 0, avgFoodCostPct: 0 };
+    
+    let totalFoodCost = 0;
+    let totalProfit = 0;
+    let totalRevenue = 0;
+    
+    menu.items.forEach(item => {
+      const foodCost = item.food_cost || 0;
+      totalFoodCost += foodCost;
+      
+      // Use approved price, or calculate from decision, or use current price
+      let price = item.current_price || 0;
+      if (item.approved_price) {
+        price = item.approved_price;
+      } else if (priceDecisions[item.id]) {
+        price = parseFloat(calculateApprovedPrice(item, priceDecisions[item.id])) || item.current_price;
+      }
+      
+      totalRevenue += price;
+      totalProfit += (price - foodCost);
+    });
+    
+    const avgFoodCostPct = totalRevenue > 0 ? (totalFoodCost / totalRevenue) * 100 : 0;
+    
+    return {
+      totalFoodCost: totalFoodCost.toFixed(2),
+      totalProfit: totalProfit.toFixed(2),
+      totalRevenue: totalRevenue.toFixed(2),
+      avgFoodCostPct: avgFoodCostPct.toFixed(1)
+    };
+  };
+
+  const totals = calculateTotals();
+
   const getStatusBadge = (status) => {
     const styles = {
       pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
