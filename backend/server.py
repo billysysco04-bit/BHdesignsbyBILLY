@@ -382,6 +382,7 @@ async def add_menu_page(
 @api_router.post("/menus/{job_id}/analyze")
 async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
     import asyncio
+    import PIL.Image
     
     job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
     if not job:
@@ -397,30 +398,12 @@ async def analyze_menu(job_id: str, user: dict = Depends(get_current_user)):
         file_paths = job.get("file_paths", [job.get("file_path")])
         
         all_items = []
-        max_retries = 5
+        max_retries = 3
         
-        # Model rotation strategy: try different models on failure
-        model_options = [
-            ("openai", "gpt-4o"),        # Primary: OpenAI GPT-4o with vision
-            ("gemini", "gemini-2.5-flash"),  # Fallback 1
-            ("gemini", "gemini-2.5-pro"),    # Fallback 2
-        ]
+        # Use Gemini 2.0 Flash for image analysis (fast and cost-effective)
+        model = genai.GenerativeModel('gemini-2.0-flash')
         
-        for page_idx, file_path in enumerate(file_paths):
-            page_items = []
-            last_error = None
-            
-            for attempt in range(max_retries):
-                try:
-                    # Rotate through models
-                    model_idx = attempt % len(model_options)
-                    model_provider, model_name = model_options[model_idx]
-                    
-                    # Initialize AI chat for each page with unique session
-                    chat = LlmChat(
-                        api_key=EMERGENT_LLM_KEY,
-                        session_id=f"menu-{job_id}-p{page_idx}-a{attempt}",
-                        system_message="""You are a restaurant menu analysis expert. Extract ALL menu items with details.
+        system_prompt = """You are a restaurant menu analysis expert. Extract ALL menu items with details.
 
 For each item provide:
 1. Item name (exactly as on menu)
@@ -429,7 +412,7 @@ For each item provide:
 4. Estimated ingredients with portions
 5. Food cost based on industry pricing
 
-Return JSON:
+Return ONLY valid JSON (no markdown, no explanation):
 {
     "items": [
         {
@@ -443,34 +426,36 @@ Return JSON:
 }
 
 CRITICAL: Extract ALL items. Do not skip any."""
-                    ).with_model(model_provider, model_name)
+        
+        for page_idx, file_path in enumerate(file_paths):
+            page_items = []
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Page {page_idx + 1} attempt {attempt + 1}: Using Gemini 2.0 Flash")
                     
-                    logger.info(f"Page {page_idx + 1} attempt {attempt + 1}: Using {model_provider}/{model_name}")
+                    # Load image
+                    image = PIL.Image.open(file_path)
                     
-                    # Prepare file for analysis
-                    mime_type = "application/pdf" if file_path.endswith(".pdf") else "image/jpeg"
-                    if file_path.endswith(".png"):
-                        mime_type = "image/png"
-                    elif file_path.endswith(".webp"):
-                        mime_type = "image/webp"
-                    
-                    file_content = FileContentWithMimeType(file_path=file_path, mime_type=mime_type)
-                    
-                    message = UserMessage(
-                        text=f"Analyze this menu page (page {page_idx + 1} of {len(file_paths)}). Extract EVERY SINGLE menu item with prices, ingredients, and food costs. Do NOT skip any items. Return complete JSON.",
-                        file_contents=[file_content]
-                    )
-                    
-                    response = await chat.send_message(message)
+                    # Generate content with image
+                    response = model.generate_content([
+                        system_prompt,
+                        image,
+                        f"Analyze this menu page (page {page_idx + 1} of {len(file_paths)}). Extract EVERY menu item with prices, ingredients, and food costs. Return ONLY JSON."
+                    ])
                     
                     # Parse response
-                    clean_response = response.strip()
-                    if clean_response.startswith("```"):
-                        clean_response = clean_response.split("```")[1]
-                        if clean_response.startswith("json"):
-                            clean_response = clean_response[4:]
+                    response_text = response.text.strip()
                     
-                    menu_data = json.loads(clean_response)
+                    # Clean up response - remove markdown code blocks if present
+                    if response_text.startswith("```"):
+                        lines = response_text.split("\n")
+                        # Remove first line (```json) and last line (```)
+                        lines = [l for l in lines if not l.startswith("```")]
+                        response_text = "\n".join(lines)
+                    
+                    menu_data = json.loads(response_text)
                     page_items = menu_data.get("items", [])
                     logger.info(f"Page {page_idx + 1}: Found {len(page_items)} items (attempt {attempt + 1})")
                     break  # Success, exit retry loop
@@ -482,7 +467,7 @@ CRITICAL: Extract ALL items. Do not skip any."""
                     last_error = str(e)
                     logger.warning(f"Page {page_idx + 1} attempt {attempt + 1} failed: {last_error}")
                     if attempt < max_retries - 1:
-                        await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
             
             if page_items:
                 all_items.extend(page_items)
