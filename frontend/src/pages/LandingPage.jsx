@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import axios from "axios";
 import { Button } from "../components/ui/button";
-import { useAuth } from "../App";
+import { useAuth, API } from "../App";
+import { toast } from "sonner";
 import { 
   Upload, 
   ChefHat, 
@@ -14,12 +16,28 @@ import {
   Check,
   BarChart3,
   Target,
-  Shield
+  Shield,
+  Loader2
 } from "lucide-react";
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  const handleAdminLogin = async () => {
+    setAdminLoading(true);
+    try {
+      const response = await axios.get(`${API}/auth/admin-login`);
+      const { access_token, user } = response.data;
+      localStorage.setItem("token", access_token);
+      window.location.href = "/dashboard"; // Force reload to update auth state
+    } catch (error) {
+      toast.error("Admin login failed");
+    } finally {
+      setAdminLoading(false);
+    }
+  };
 
   const features = [
     {
