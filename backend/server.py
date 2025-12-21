@@ -677,16 +677,24 @@ async def search_location(query: str, user: dict = Depends(get_current_user)):
             
             message = UserMessage(text=f"Format this US address: {query}")
             response = await chat.send_message(message)
-        
-        # Parse response
-        clean_response = response.strip()
-        if clean_response.startswith("```"):
-            clean_response = clean_response.split("```")[1]
-            if clean_response.startswith("json"):
-                clean_response = clean_response[4:]
-        
-        data = json.loads(clean_response)
-        return {"results": data.get("locations", [])}
+            
+            # Parse response
+            clean_response = response.strip()
+            if clean_response.startswith("```"):
+                clean_response = clean_response.split("```")[1]
+                if clean_response.startswith("json"):
+                    clean_response = clean_response[4:]
+            
+            data = json.loads(clean_response)
+            return {"results": data.get("locations", [])}
+            
+        except Exception as e:
+            logger.error(f"Location search AI error: {str(e)}")
+            # Return empty for AI failures
+            return {"results": []}
+    
+    # For non-address queries that didn't match cities, return empty
+    return {"results": []}
         
     except Exception as e:
         logger.error(f"Location search error: {str(e)}")
