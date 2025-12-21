@@ -27,6 +27,7 @@ api_router = APIRouter(prefix="/api")
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24 * 7
+ADMIN_SECRET = os.environ.get('ADMIN_SECRET', 'admin-secret-2025')
 
 security = HTTPBearer()
 
@@ -35,12 +36,14 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: EmailStr
     name: str
+    is_admin: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
+    admin_secret: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -122,9 +125,14 @@ async def register(user_data: UserCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    is_admin = False
+    if user_data.admin_secret == ADMIN_SECRET:
+        is_admin = True
+    
     user = User(
         email=user_data.email,
-        name=user_data.name
+        name=user_data.name,
+        is_admin=is_admin
     )
     
     user_dict = user.model_dump()
