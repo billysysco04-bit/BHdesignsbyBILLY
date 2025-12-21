@@ -1,86 +1,12 @@
 # THIS SECTION CONTAINS CRITICAL TESTING INSTRUCTIONS FOR BOTH AGENTS
 # BOTH MAIN_AGENT AND TESTING_AGENT MUST PRESERVE THIS ENTIRE BLOCK
 
-# Communication Protocol:
-# If the `testing_agent` is available, main agent should delegate all testing tasks to it.
-#
-# You have access to a file called `test_result.md`. This file contains the complete testing state
-# and history, and is the primary means of communication between main and the testing agent.
-#
-# Main and testing agents must follow this exact format to maintain testing data. 
-# The testing data must be entered in yaml format Below is the data structure:
-# 
-## user_problem_statement: {problem_statement}
-## backend:
-##   - task: "Task name"
-##     implemented: true
-##     working: true  # or false or "NA"
-##     file: "file_path.py"
-##     stuck_count: 0
-##     priority: "high"  # or "medium" or "low"
-##     needs_retesting: false
-##     status_history:
-##         -working: true  # or false or "NA"
-##         -agent: "main"  # or "testing" or "user"
-##         -comment: "Detailed comment about status"
-##
-## frontend:
-##   - task: "Task name"
-##     implemented: true
-##     working: true  # or false or "NA"
-##     file: "file_path.js"
-##     stuck_count: 0
-##     priority: "high"  # or "medium" or "low"
-##     needs_retesting: false
-##     status_history:
-##         -working: true  # or false or "NA"
-##         -agent: "main"  # or "testing" or "user"
-##         -comment: "Detailed comment about status"
-##
-## metadata:
-##   created_by: "main_agent"
-##   version: "1.0"
-##   test_sequence: 0
-##   run_ui: false
-##
-## test_plan:
-##   current_focus:
-##     - "Task name 1"
-##     - "Task n"
-##   stuck_tasks:
-##     - "Task name with persistent issues"
-##   test_all: false
-##
-## agent_communication:
-##     -agent: "main"  # or "testing" or "user"
-##     -message: "Communication message"
-
-#====================================================================================================
-# Testing Data - Main Agent and testing sub agent both should log testing data below this section
-#====================================================================================================
-
 user_problem_statement: |
-  MenuGenius - Menu Management Application with AI Analysis
-  Critical bugs to fix:
-  1. Multi-page menu upload - Only 39 items showing instead of all items
-  2. Export functionality not working (no file download despite success message)
-  3. Drag-and-drop for file uploads not working
-  4. Address search for competitor analysis slow/not functional
+  MenuGenius - Menu Management Application
+  Stripe Payment Integration: Subscriptions + One-time credit purchases
 
 backend:
-  - task: "Multi-page upload - Accept multiple files"
-    implemented: true
-    working: "NA"
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Modified upload_menu endpoint to accept List[UploadFile] instead of single file. Now stores all files in file_paths array."
-
-  - task: "Export CSV with file download"
+  - task: "Subscription plans endpoint"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -90,95 +16,108 @@ backend:
     status_history:
       - working: true
         agent: "main"
-        comment: "Modified export endpoint to return Response with Content-Disposition attachment header. Tested via curl - returns proper CSV with download header."
+        comment: "GET /api/subscriptions/plans returns 3 plans with features"
 
-  - task: "Export JSON with file download"
+  - task: "Subscription checkout endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Added proper Content-Disposition header for JSON export"
+        comment: "POST /api/subscriptions/checkout creates Stripe checkout session successfully"
+
+  - task: "Credit packages endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "GET /api/credits/packages returns 3 credit packs"
+
+  - task: "Credit checkout endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "POST /api/credits/checkout creates Stripe checkout session"
 
 frontend:
-  - task: "Multi-file upload form handling"
+  - task: "Subscription page"
     implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/MenuUpload.jsx"
+    working: true
+    file: "/app/frontend/src/pages/SubscriptionPage.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Updated handleUpload to send files with key 'files' (plural) matching backend. Increased timeout to 2 minutes."
+        comment: "Shows 3 subscription plans with pricing and features"
 
-  - task: "Export file download"
+  - task: "Credits page"
     implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/MenuAnalysis.jsx"
+    working: true
+    file: "/app/frontend/src/pages/CreditsPage.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Rewrote handleExport to use fetch API with blob response and window.URL.createObjectURL for reliable download"
+        comment: "Shows credit packs with purchase buttons"
 
-  - task: "Drag and drop file upload"
+  - task: "Dashboard subscribe button"
     implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/MenuUpload.jsx"
-    stuck_count: 1
+    working: true
+    file: "/app/frontend/src/pages/Dashboard.jsx"
+    stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Existing drag-drop handlers look correct. User reported not working - needs frontend testing."
-
-  - task: "Address search autocomplete"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/components/AddressSearch.jsx"
-    stuck_count: 1
-    priority: "medium"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Currently using static US cities list. Works but limited functionality."
+        comment: "Subscribe button added to dashboard navigation"
 
 metadata:
   created_by: "main_agent"
-  version: "2.0"
-  test_sequence: 1
+  version: "3.0"
+  test_sequence: 2
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Multi-file upload form handling"
-    - "Export file download"
-    - "Drag and drop file upload"
+    - "Stripe subscription checkout flow"
+    - "Stripe credit purchase flow"
   stuck_tasks: []
   test_all: false
 
 agent_communication:
   - agent: "main"
     message: |
-      Fixed the following issues:
-      1. Backend: upload_menu now accepts List[UploadFile] for multiple files
-      2. Backend: export endpoint now returns Response with Content-Disposition header for actual file download
-      3. Frontend: handleUpload sends files with correct key 'files' 
-      4. Frontend: handleExport now uses fetch with blob for reliable download
+      Implemented Stripe payment system with:
+      1. Subscription plans (Basic $19.99, Pro $49.99, Business $149.99)
+      2. One-time credit packs (Starter $9.99, Professional $24.99, Enterprise $69.99)
+      3. Dashboard shows Subscribe and Credits buttons
+      4. Checkout creates Stripe session and redirects to Stripe checkout page
+      
+      Test Stripe key is used: sk_test_emergent
       
       Please test:
-      - Multi-file upload flow (select/drag multiple files)
-      - Export CSV and JSON (should trigger actual file download, not just success message)
-      - Drag and drop functionality
+      - Navigate to /subscription and verify plans display
+      - Navigate to /credits and verify packs display
+      - Click Subscribe/Purchase buttons to verify Stripe redirect works
       
-      Admin access: Click "Admin Access" on landing page for instant login
+      Note: Actual payment completion requires test card (4242424242424242)
