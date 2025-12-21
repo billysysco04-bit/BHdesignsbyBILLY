@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-21T17:17:16.198334",
+  "timestamp": "2025-12-21T19:23:11.668172",
   "test_type": "critical_bug_fixes",
   "summary": {
     "tests_run": 7,
@@ -11,43 +11,43 @@
       "test": "Admin Login",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T17:17:16.024373"
+      "timestamp": "2025-12-21T19:23:11.403457"
     },
     {
       "test": "Multi-file Upload",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T17:17:16.075973"
+      "timestamp": "2025-12-21T19:23:11.464810"
     },
     {
       "test": "Multi-file Upload Pages",
       "success": true,
       "details": "Expected 2 pages, got 2",
-      "timestamp": "2025-12-21T17:17:16.076499"
+      "timestamp": "2025-12-21T19:23:11.465403"
     },
     {
       "test": "Menu Retrieval",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T17:17:16.118987"
+      "timestamp": "2025-12-21T19:23:11.527122"
     },
     {
       "test": "Menu File Paths",
       "success": true,
       "details": "Expected >=2 file paths, got 2",
-      "timestamp": "2025-12-21T17:17:16.119451"
+      "timestamp": "2025-12-21T19:23:11.527942"
     },
     {
       "test": "Export CSV",
       "success": true,
       "details": "Status: 200, Content-Disposition: attachment; filename=\"Uploaded_Menu_export.csv\", Size: 152 bytes",
-      "timestamp": "2025-12-21T17:17:16.157171"
+      "timestamp": "2025-12-21T19:23:11.581590"
     },
     {
       "test": "Export JSON",
       "success": true,
       "details": "Status: 200, Content-Disposition: attachment; filename=\"Uploaded_Menu_export.json\", Size: 661 bytes",
-      "timestamp": "2025-12-21T17:17:16.197019"
+      "timestamp": "2025-12-21T19:23:11.664752"
     }
   ]
 }
