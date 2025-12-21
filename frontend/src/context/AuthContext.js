@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('User fetched:', response.data);
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
@@ -38,15 +39,21 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setToken(token);
     setUser(user);
+    console.log('Logged in user:', user);
     return user;
   };
 
-  const register = async (name, email, password) => {
-    const response = await axios.post(`${API_URL}/auth/register`, { name, email, password });
+  const register = async (name, email, password, adminSecret = null) => {
+    const payload = { name, email, password };
+    if (adminSecret) {
+      payload.admin_secret = adminSecret;
+    }
+    const response = await axios.post(`${API_URL}/auth/register`, payload);
     const { token, user } = response.data;
     localStorage.setItem('token', token);
     setToken(token);
     setUser(user);
+    console.log('Registered user:', user);
     return user;
   };
 

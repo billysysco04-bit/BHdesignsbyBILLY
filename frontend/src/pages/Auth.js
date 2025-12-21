@@ -2,19 +2,22 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, Shield } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { useAuth } from '../context/AuthContext';
+import { Checkbox } from '../components/ui/checkbox';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showAdminSecret, setShowAdminSecret] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    adminSecret: ''
   });
 
   const { login, register } = useAuth();
@@ -29,7 +32,8 @@ export default function Auth() {
         await login(formData.email, formData.password);
         toast.success('Welcome back!');
       } else {
-        await register(formData.name, formData.email, formData.password);
+        const adminSecret = showAdminSecret && formData.adminSecret ? formData.adminSecret : null;
+        await register(formData.name, formData.email, formData.password, adminSecret);
         toast.success('Account created successfully!');
       }
       navigate('/dashboard');
@@ -119,6 +123,40 @@ export default function Auth() {
               />
             </div>
 
+            {!isLogin && (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="admin-check"
+                    checked={showAdminSecret}
+                    onCheckedChange={setShowAdminSecret}
+                    data-testid="admin-checkbox"
+                  />
+                  <label htmlFor="admin-check" className="text-sm text-neutral-600 cursor-pointer flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Register as Admin
+                  </label>
+                </div>
+                {showAdminSecret && (
+                  <div className="space-y-2">
+                    <Label htmlFor="adminSecret" className="text-charcoal font-medium">
+                      Admin Secret
+                    </Label>
+                    <Input
+                      id="adminSecret"
+                      data-testid="auth-admin-secret-input"
+                      type="password"
+                      placeholder="Enter admin secret"
+                      value={formData.adminSecret}
+                      onChange={(e) => setFormData({ ...formData, adminSecret: e.target.value })}
+                      className="border-terracotta focus:border-terracotta"
+                    />
+                    <p className="text-xs text-neutral-500">Contact admin for secret key</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
               data-testid="auth-submit-button"
@@ -139,6 +177,12 @@ export default function Auth() {
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
             </button>
+          </div>
+
+          {/* Copyright */}
+          <div className="mt-6 text-center text-xs text-neutral-400">
+            &copy; 2025 MenuMaker. All rights reserved.<br/>
+            Owned and operated by BHdesignsbyBILLY - Billy Harman
           </div>
         </div>
 
