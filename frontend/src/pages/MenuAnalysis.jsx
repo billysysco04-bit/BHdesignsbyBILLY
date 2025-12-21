@@ -154,36 +154,35 @@ export default function MenuAnalysis() {
         mimeType = "text/csv;charset=utf-8";
       }
       
-      // Create blob and download using multiple methods for browser compatibility
-      const blob = new Blob([content], { type: mimeType });
+      // Create blob
+      const blob = new Blob(["\ufeff" + content], { type: mimeType }); // BOM for Excel compatibility
       
-      // Method 1: Try using msSaveBlob for IE/Edge
-      if (window.navigator && window.navigator.msSaveBlob) {
-        window.navigator.msSaveBlob(blob, filename);
-        toast.success(`${format.toUpperCase()} exported successfully!`);
-        return;
-      }
+      // Create download URL
+      const url = URL.createObjectURL(blob);
       
-      // Method 2: Create object URL and download
-      const url = window.URL.createObjectURL(blob);
+      // Create and configure link
       const link = document.createElement("a");
-      link.style.display = "none";
       link.href = url;
       link.download = filename;
+      link.style.visibility = "hidden";
+      link.style.position = "absolute";
+      link.style.left = "-9999px";
       
-      // Append to body, click, then remove
+      // Add to DOM
       document.body.appendChild(link);
       
-      // Use setTimeout to ensure the link is in the DOM
-      setTimeout(() => {
-        link.click();
-        setTimeout(() => {
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        }, 100);
-      }, 0);
+      // Trigger download
+      link.click();
       
-      toast.success(`${format.toUpperCase()} exported! Check your downloads folder.`);
+      // Cleanup after a delay
+      setTimeout(() => {
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+      toast.success(`${format.toUpperCase()} file downloading...`);
     } catch (error) {
       console.error("Export error:", error);
       toast.error("Export failed: " + (error.message || "Unknown error"));
