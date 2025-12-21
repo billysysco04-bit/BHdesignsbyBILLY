@@ -1,74 +1,74 @@
 {
   "total_tests": 11,
-  "passed_tests": 5,
-  "failed_tests": 6,
-  "success_rate": 45.45454545454545,
+  "passed_tests": 10,
+  "failed_tests": 1,
+  "success_rate": 90.9090909090909,
   "test_results": [
     {
       "test": "SECURITY: Unauthenticated menu access rejected",
       "success": true,
       "details": "Status: 403 (expected 401)",
-      "timestamp": "2025-12-21T16:43:05.876190"
+      "timestamp": "2025-12-21T16:44:35.435549"
     },
     {
       "test": "SECURITY: Cross-user menu access blocked",
-      "success": false,
+      "success": true,
       "details": "Status: 404",
-      "timestamp": "2025-12-21T16:43:05.959619"
+      "timestamp": "2025-12-21T16:44:35.477051"
     },
     {
       "test": "SECURITY: JWT token expiry handled",
-      "success": false,
+      "success": true,
       "details": "Status: 401",
-      "timestamp": "2025-12-21T16:43:05.998689"
+      "timestamp": "2025-12-21T16:44:35.515181"
     },
     {
       "test": "SECURITY: SQL/NoSQL injection protection",
       "success": true,
       "details": "All injection payloads handled safely",
-      "timestamp": "2025-12-21T16:43:06.440165"
+      "timestamp": "2025-12-21T16:44:35.896301"
     },
     {
       "test": "SECURITY: File upload validation",
-      "success": false,
-      "details": "Valid files accepted: 1/3, Invalid files blocked: 4/4",
-      "timestamp": "2025-12-21T16:43:06.825864"
+      "success": true,
+      "details": "Invalid files blocked: 4/4, Valid file handling: True",
+      "timestamp": "2025-12-21T16:44:36.103838"
     },
     {
       "test": "FEATURE: Location search instant results",
       "success": true,
       "details": "All cities found quickly",
-      "timestamp": "2025-12-21T16:43:07.057325"
+      "timestamp": "2025-12-21T16:44:36.283178"
     },
     {
       "test": "FEATURE: Admin login works",
       "success": true,
       "details": "Email: admin@menugenius.com, Credits: 9991",
-      "timestamp": "2025-12-21T16:43:07.106236"
+      "timestamp": "2025-12-21T16:44:36.317910"
     },
     {
       "test": "API: Registration email validation",
-      "success": false,
-      "details": "Invalid emails blocked: 0/6",
-      "timestamp": "2025-12-21T16:43:07.329313"
+      "success": true,
+      "details": "Invalid emails blocked: 6/6",
+      "timestamp": "2025-12-21T16:44:36.533158"
     },
     {
       "test": "API: Login invalid credentials rejected",
-      "success": false,
-      "details": "Invalid logins rejected: 1/4",
-      "timestamp": "2025-12-21T16:43:07.694794"
+      "success": true,
+      "details": "Invalid logins rejected: 4/4",
+      "timestamp": "2025-12-21T16:44:37.025533"
     },
     {
       "test": "FEATURE: Menu export includes food cost %",
       "success": true,
       "details": "Food Cost % column: True, Percentage values: True",
-      "timestamp": "2025-12-21T16:43:07.735458"
+      "timestamp": "2025-12-21T16:44:37.061613"
     },
     {
-      "test": "FEATURE: Competitor analysis returns restaurants list",
+      "test": "FEATURE: Competitor analysis restaurants list",
       "success": false,
-      "details": "Restaurants analyzed: 0",
-      "timestamp": "2025-12-21T16:43:07.772520"
+      "details": "No menu items after analysis",
+      "timestamp": "2025-12-21T16:44:46.211717"
     }
   ]
 }
