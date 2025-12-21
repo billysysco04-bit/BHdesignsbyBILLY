@@ -119,6 +119,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def require_admin(user_id: str = Depends(get_current_user)) -> str:
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user or not user.get('is_admin'):
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return user_id
+
 @api_router.post("/auth/register", response_model=AuthResponse)
 async def register(user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
