@@ -118,11 +118,43 @@ class CreditPackage(BaseModel):
     credits: int
     price: float
 
-# Credit packages
+# Credit packages (one-time purchases)
 CREDIT_PACKAGES = {
     "starter": CreditPackage(id="starter", name="Starter Pack", credits=5, price=9.99),
     "professional": CreditPackage(id="professional", name="Professional Pack", credits=15, price=24.99),
     "enterprise": CreditPackage(id="enterprise", name="Enterprise Pack", credits=50, price=69.99),
+}
+
+# Subscription plans
+class SubscriptionPlan(BaseModel):
+    id: str
+    name: str
+    credits_per_month: int
+    price_per_month: float
+    features: List[str]
+
+SUBSCRIPTION_PLANS = {
+    "basic": SubscriptionPlan(
+        id="basic", 
+        name="Basic Plan", 
+        credits_per_month=10, 
+        price_per_month=19.99,
+        features=["10 menu analyses/month", "AI-powered extraction", "Basic support"]
+    ),
+    "pro": SubscriptionPlan(
+        id="pro", 
+        name="Pro Plan", 
+        credits_per_month=30, 
+        price_per_month=49.99,
+        features=["30 menu analyses/month", "Priority AI processing", "Competitor analysis", "Email support"]
+    ),
+    "business": SubscriptionPlan(
+        id="business", 
+        name="Business Plan", 
+        credits_per_month=100, 
+        price_per_month=149.99,
+        features=["100 menu analyses/month", "Fastest AI processing", "Full competitor insights", "Priority support", "API access"]
+    ),
 }
 
 # ============== AUTH HELPERS ==============
