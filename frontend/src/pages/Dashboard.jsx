@@ -92,6 +92,14 @@ export default function Dashboard() {
           
           <div className="flex items-center gap-4">
             <button
+              onClick={() => navigate("/subscription")}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors"
+            >
+              <Crown className="w-4 h-4" />
+              <span className="text-sm font-medium">Subscribe</span>
+            </button>
+            
+            <button
               onClick={() => navigate("/credits")}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
             >
