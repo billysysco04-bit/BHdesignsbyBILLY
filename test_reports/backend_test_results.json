@@ -1,56 +1,23 @@
 {
-  "total_tests": 8,
-  "passed_tests": 7,
-  "failed_tests": 1,
-  "success_rate": 87.5,
+  "timestamp": "2025-12-21T17:17:02.517917",
+  "test_type": "critical_bug_fixes",
+  "summary": {
+    "tests_run": 2,
+    "tests_passed": 1,
+    "success_rate": "50.0%"
+  },
   "test_results": [
     {
-      "test": "Health Check",
+      "test": "Admin Login",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T13:11:23.535246"
+      "timestamp": "2025-12-21T17:17:02.476315"
     },
     {
-      "test": "Root Endpoint",
-      "success": true,
-      "details": "Status: 200",
-      "timestamp": "2025-12-21T13:11:23.611275"
-    },
-    {
-      "test": "User Registration",
-      "success": true,
-      "details": "Status: 200",
-      "timestamp": "2025-12-21T13:11:23.921307"
-    },
-    {
-      "test": "Get Current User",
-      "success": true,
-      "details": "Status: 200",
-      "timestamp": "2025-12-21T13:11:23.962418"
-    },
-    {
-      "test": "Get Credit Packages",
-      "success": true,
-      "details": "Status: 200",
-      "timestamp": "2025-12-21T13:11:24.001480"
-    },
-    {
-      "test": "Get User Menus",
-      "success": true,
-      "details": "Status: 200",
-      "timestamp": "2025-12-21T13:11:24.044374"
-    },
-    {
-      "test": "Invalid Endpoint",
-      "success": true,
-      "details": "Status: 404",
-      "timestamp": "2025-12-21T13:11:24.083521"
-    },
-    {
-      "test": "Unauthorized Access",
+      "test": "Multi-file Upload",
       "success": false,
-      "details": "Status: 403 (expected 401) - Not authenticated",
-      "timestamp": "2025-12-21T13:11:24.116702"
+      "details": "Status: 400 (expected 200) - Unsupported file type: test_menu_1.txt. Please upload PDF or image files.",
+      "timestamp": "2025-12-21T17:17:02.517210"
     }
   ]
 }
