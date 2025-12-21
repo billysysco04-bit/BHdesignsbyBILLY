@@ -6,6 +6,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
 import Templates from './pages/Templates';
+import Admin from './pages/Admin';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import '@/App.css';
 
@@ -25,6 +26,7 @@ function App() {
             <Route path="/templates" element={<PrivateRoute><Templates /></PrivateRoute>} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/editor/:menuId?" element={<PrivateRoute><Editor /></PrivateRoute>} />
+            <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
           </Routes>
           <Toaster position="top-right" richColors />
         </div>
