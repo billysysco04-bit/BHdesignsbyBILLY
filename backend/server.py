@@ -554,6 +554,163 @@ async def analyze_competitors(job_id: str, user: dict = Depends(get_current_user
         logger.error(f"Competitor analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Competitor analysis failed: {str(e)}")
 
+# ============== PRICE COMPARISON & ANALYTICS ==============
+
+@api_router.get("/analytics/price-history")
+async def get_price_history(user: dict = Depends(get_current_user)):
+    """Get all price history snapshots for comparison"""
+    history = await db.price_history.find(
+        {"user_id": user["id"]}, 
+        {"_id": 0}
+    ).sort("snapshot_date", -1).to_list(100)
+    return history
+
+@api_router.get("/analytics/price-history/{menu_id}")
+async def get_menu_price_history(menu_id: str, user: dict = Depends(get_current_user)):
+    """Get price history for a specific menu"""
+    history = await db.price_history.find(
+        {"menu_id": menu_id, "user_id": user["id"]}, 
+        {"_id": 0}
+    ).sort("snapshot_date", -1).to_list(50)
+    return history
+
+@api_router.get("/analytics/summary")
+async def get_analytics_summary(user: dict = Depends(get_current_user)):
+    """Get overall analytics summary"""
+    # Get all snapshots
+    history = await db.price_history.find(
+        {"user_id": user["id"]}, 
+        {"_id": 0}
+    ).sort("snapshot_date", 1).to_list(1000)
+    
+    if not history:
+        return {
+            "total_snapshots": 0,
+            "total_menus_analyzed": 0,
+            "total_items_priced": 0,
+            "total_profit_generated": 0,
+            "avg_profit_margin": 0,
+            "profit_trend": [],
+            "revenue_trend": [],
+            "top_performing_items": []
+        }
+    
+    # Calculate metrics
+    total_profit = sum(h.get("total_profit", 0) for h in history)
+    total_revenue = sum(h.get("total_revenue", 0) for h in history)
+    total_items = sum(h.get("total_items", 0) for h in history)
+    avg_margin = total_profit / total_revenue * 100 if total_revenue > 0 else 0
+    
+    # Get unique menus
+    unique_menus = len(set(h.get("menu_id") for h in history))
+    
+    # Build trend data (last 10 snapshots)
+    recent = history[-10:] if len(history) > 10 else history
+    profit_trend = [
+        {
+            "date": h.get("snapshot_date", "")[:10],
+            "profit": h.get("total_profit", 0),
+            "menu": h.get("menu_name", "")[:20]
+        }
+        for h in recent
+    ]
+    
+    revenue_trend = [
+        {
+            "date": h.get("snapshot_date", "")[:10],
+            "revenue": h.get("total_revenue", 0),
+            "food_cost": h.get("total_food_cost", 0)
+        }
+        for h in recent
+    ]
+    
+    # Find top performing items across all snapshots
+    item_profits = {}
+    for h in history:
+        for item in h.get("items", []):
+            name = item.get("name", "Unknown")
+            profit = item.get("profit", 0)
+            if name in item_profits:
+                item_profits[name]["total_profit"] += profit
+                item_profits[name]["count"] += 1
+            else:
+                item_profits[name] = {"name": name, "total_profit": profit, "count": 1}
+    
+    top_items = sorted(
+        item_profits.values(), 
+        key=lambda x: x["total_profit"], 
+        reverse=True
+    )[:10]
+    
+    return {
+        "total_snapshots": len(history),
+        "total_menus_analyzed": unique_menus,
+        "total_items_priced": total_items,
+        "total_profit_generated": round(total_profit, 2),
+        "avg_profit_margin": round(avg_margin, 1),
+        "profit_trend": profit_trend,
+        "revenue_trend": revenue_trend,
+        "top_performing_items": top_items
+    }
+
+@api_router.get("/analytics/compare")
+async def compare_snapshots(
+    snapshot_ids: str,  # comma-separated IDs
+    user: dict = Depends(get_current_user)
+):
+    """Compare multiple price snapshots"""
+    ids = [id.strip() for id in snapshot_ids.split(",")]
+    
+    snapshots = await db.price_history.find(
+        {"id": {"$in": ids}, "user_id": user["id"]},
+        {"_id": 0}
+    ).to_list(10)
+    
+    if len(snapshots) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 snapshots to compare")
+    
+    # Sort by date
+    snapshots.sort(key=lambda x: x.get("snapshot_date", ""))
+    
+    # Calculate changes between first and last
+    first = snapshots[0]
+    last = snapshots[-1]
+    
+    profit_change = last.get("total_profit", 0) - first.get("total_profit", 0)
+    revenue_change = last.get("total_revenue", 0) - first.get("total_revenue", 0)
+    margin_change = last.get("profit_margin", 0) - first.get("profit_margin", 0)
+    
+    # Item-level comparison
+    first_items = {i.get("name"): i for i in first.get("items", [])}
+    last_items = {i.get("name"): i for i in last.get("items", [])}
+    
+    item_changes = []
+    for name, last_item in last_items.items():
+        if name in first_items:
+            first_item = first_items[name]
+            price_change = (last_item.get("approved_price", 0) or 0) - (first_item.get("approved_price", 0) or 0)
+            profit_change_item = (last_item.get("profit", 0) or 0) - (first_item.get("profit", 0) or 0)
+            item_changes.append({
+                "name": name,
+                "old_price": first_item.get("approved_price"),
+                "new_price": last_item.get("approved_price"),
+                "price_change": round(price_change, 2),
+                "price_change_pct": round(price_change / first_item.get("approved_price", 1) * 100, 1) if first_item.get("approved_price") else 0,
+                "profit_change": round(profit_change_item, 2)
+            })
+    
+    return {
+        "snapshots": snapshots,
+        "summary": {
+            "period": f"{first.get('snapshot_date', '')[:10]} to {last.get('snapshot_date', '')[:10]}",
+            "profit_change": round(profit_change, 2),
+            "profit_change_pct": round(profit_change / first.get("total_profit", 1) * 100, 1) if first.get("total_profit") else 0,
+            "revenue_change": round(revenue_change, 2),
+            "margin_change": round(margin_change, 1)
+        },
+        "item_changes": sorted(item_changes, key=lambda x: x["profit_change"], reverse=True)
+    }
+
 # ============== PAYMENT ROUTES ==============
 
 @api_router.get("/credits/packages")
