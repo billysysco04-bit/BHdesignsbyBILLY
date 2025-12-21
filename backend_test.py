@@ -160,10 +160,14 @@ class MenuGeniusAPITester:
         # Create test files
         test_files = []
         try:
-            # Create temporary test files
+            # Create temporary test image files (PNG format)
+            import base64
+            
+            # Simple 1x1 PNG image data
+            png_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77yQAAAABJRU5ErkJggg==')
+            
             for i in range(2):
-                file_content = f"Test menu content {i+1}\nItem 1: Burger ${10 + i}.99\nItem 2: Fries ${5 + i}.99"
-                test_files.append(('files', (f'test_menu_{i+1}.txt', file_content, 'text/plain')))
+                test_files.append(('files', (f'test_menu_{i+1}.png', png_data, 'image/png')))
             
             # Test multi-file upload
             form_data = {
