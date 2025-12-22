@@ -633,6 +633,75 @@ async def upload_menu_file(
         logging.error(f"File upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
 
+# Restaurant Profile endpoints
+@api_router.post("/profile/restaurant")
+async def create_or_update_restaurant_profile(
+    profile_data: RestaurantProfileCreate,
+    user_id: str = Depends(get_current_user)
+):
+    """Create or update restaurant profile"""
+    existing = await db.restaurant_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    
+    profile = RestaurantProfile(
+        user_id=user_id,
+        **profile_data.model_dump()
+    )
+    
+    profile_dict = profile.model_dump()
+    profile_dict['updated_at'] = profile_dict['updated_at'].isoformat()
+    
+    if existing:
+        await db.restaurant_profiles.update_one(
+            {"user_id": user_id},
+            {"$set": profile_dict}
+        )
+    else:
+        await db.restaurant_profiles.insert_one(profile_dict)
+    
+    return profile
+
+@api_router.get("/profile/restaurant")
+async def get_restaurant_profile(user_id: str = Depends(get_current_user)):
+    """Get user's restaurant profile"""
+    profile = await db.restaurant_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    if not profile:
+        return None
+    
+    if isinstance(profile.get('updated_at'), str):
+        profile['updated_at'] = datetime.fromisoformat(profile['updated_at'])
+    
+    return RestaurantProfile(**profile)
+
+# Feedback endpoint
+class FeedbackSubmission(BaseModel):
+    feedback_text: str
+    rating: Optional[int] = None
+    category: Optional[str] = "general"
+
+@api_router.post("/feedback")
+async def submit_feedback(
+    feedback: FeedbackSubmission,
+    user_id: str = Depends(get_current_user)
+):
+    """Submit user feedback"""
+    feedback_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "feedback_text": feedback.feedback_text,
+        "rating": feedback.rating,
+        "category": feedback.category,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.feedback.insert_one(feedback_doc)
+    return {"message": "Thank you for your feedback!"}
+
+@api_router.get("/admin/feedback")
+async def get_all_feedback(admin_id: str = Depends(require_admin)):
+    """Get all user feedback (admin only)"""
+    feedback_list = await db.feedback.find({}, {"_id": 0}).sort([("created_at", -1)]).to_list(100)
+    return feedback_list
+
 app.include_router(api_router)
 
 app.add_middleware(
