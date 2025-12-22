@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
-import { ChefHat, ArrowLeft, Plus, Trash2, Wand2, Download, Save, Type, Palette, Layout as LayoutIcon, Image as ImageIcon, Sparkles, Eye, Edit3 } from 'lucide-react';
+import { ChefHat, ArrowLeft, Plus, Trash2, Wand2, Download, Save, Type, Palette, Layout as LayoutIcon, Image as ImageIcon, Sparkles, Eye, Edit3, Upload, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
