@@ -1,46 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, ArrowLeft, Plus, Trash2, Wand2, Download, Save, Settings, Undo, Redo, Copy, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { ChefHat, ArrowLeft, Plus, Trash2, Wand2, Download, Save, Type, Palette, Layout as LayoutIcon, Image as ImageIcon, Sparkles, Eye, Edit3 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Switch } from '../components/ui/switch';
 import { Slider } from '../components/ui/slider';
-import { Separator } from '../components/ui/separator';
 import { api } from '../utils/api';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const FONTS = [
-  'Playfair Display',
-  'DM Sans',
-  'Merriweather',
-  'Inter',
-  'Lora',
-  'Roboto',
-  'Montserrat',
-  'Crimson Text'
-];
+const FONTS = ['Playfair Display', 'DM Sans', 'Merriweather', 'Inter', 'Lora', 'Roboto', 'Montserrat', 'Crimson Text', 'Georgia', 'Times New Roman'];
 
-const BACKGROUNDS = [
-  { name: 'White', value: '#ffffff' },
-  { name: 'Cream', value: '#fdfbf7' },
-  { name: 'Light Gray', value: '#f5f5f5' },
-  { name: 'Beige', value: '#f5f5dc' },
-  { name: 'Light Blue', value: '#f0f8ff' },
-  { name: 'Light Green', value: '#f0fff0' },
-];
-
-const BORDER_STYLES = [
-  { name: 'None', value: 'none' },
-  { name: 'Solid', value: 'solid' },
-  { name: 'Dashed', value: 'dashed' },
-  { name: 'Dotted', value: 'dotted' },
-  { name: 'Double', value: 'double' }
+const BACKGROUND_IMAGES = [
+  { name: 'None', url: '' },
+  { name: 'Elegant Texture', url: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=800&q=80' },
+  { name: 'Wood Grain', url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=800&q=80' },
+  { name: 'Marble', url: 'https://images.unsplash.com/photo-1564053489984-317bbd824340?w=800&q=80' },
+  { name: 'Linen', url: 'https://images.unsplash.com/photo-1567696911980-2eed69a46042?w=800&q=80' },
+  { name: 'Dark Slate', url: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&q=80' },
 ];
 
 export default function Editor() {
@@ -52,71 +35,55 @@ export default function Editor() {
   const [editingItem, setEditingItem] = useState(null);
   const [showItemDialog, setShowItemDialog] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
-  const [activeTab, setActiveTab] = useState('text');
 
-  const [designSettings, setDesignSettings] = useState({
-    // Typography
+  const [design, setDesign] = useState({
+    // Title & Subtitle
+    title: 'Restaurant Menu',
+    subtitle: 'A curated selection',
     titleFont: 'Playfair Display',
-    bodyFont: 'DM Sans',
-    priceFont: 'Playfair Display',
-    titleSize: 48,
-    subtitleSize: 18,
-    categorySize: 28,
-    itemNameSize: 20,
-    descriptionSize: 14,
-    priceSize: 20,
-    
-    // Colors
+    titleSize: 56,
     titleColor: '#1a1a1a',
-    categoryColor: '#1a1a1a',
-    itemNameColor: '#1a1a1a',
-    descriptionColor: '#666666',
-    priceColor: '#e07a5f',
-    backgroundColor: '#ffffff',
-    
-    // Spacing & Layout
-    pageWidth: '210mm',
-    pageHeight: '297mm',
-    paddingTop: 48,
-    paddingSides: 48,
-    paddingBottom: 48,
-    itemSpacing: 24,
-    categorySpacing: 40,
-    
-    // Borders & Decorations
-    titleBorderBottom: true,
-    titleBorderStyle: 'solid',
-    titleBorderWidth: 2,
-    titleBorderColor: '#1a1a1a',
-    categoryBorderBottom: true,
-    categoryBorderStyle: 'solid',
-    categoryBorderWidth: 1,
-    categoryBorderColor: '#666666',
-    pageBorder: false,
-    pageBorderWidth: 2,
-    pageBorderColor: '#1a1a1a',
-    
-    // Text Alignment
     titleAlign: 'center',
-    categoryAlign: 'left',
-    itemAlign: 'left',
-    pricePosition: 'right',
+    subtitleFont: 'DM Sans',
+    subtitleSize: 18,
+    subtitleColor: '#666666',
     
-    // Effects
-    titleUppercase: false,
+    // Items
+    itemFont: 'DM Sans',
+    itemNameSize: 22,
+    itemNameColor: '#1a1a1a',
+    descriptionSize: 15,
+    descriptionColor: '#666666',
+    priceFont: 'Playfair Display',
+    priceSize: 22,
+    priceColor: '#e07a5f',
+    
+    // Categories
+    categoryFont: 'Playfair Display',
+    categorySize: 32,
+    categoryColor: '#1a1a1a',
     categoryUppercase: true,
-    itemNameBold: true,
-    priceDisplay: 'inline',
+    
+    // Background
+    backgroundColor: '#ffffff',
+    backgroundImage: '',
+    backgroundOpacity: 100,
+    
+    // Layout
+    pageWidth: 800,
+    padding: 60,
+    itemSpacing: 32,
+    categorySpacing: 48,
+    
+    // Borders
+    showTitleBorder: true,
+    titleBorderColor: '#1a1a1a',
+    showCategoryBorder: true,
+    categoryBorderColor: '#666666',
     
     // Warning
-    includeWarning: true,
-    warningPosition: 'bottom',
-    warningSize: 11,
-    
-    // Logo
-    logoUrl: '',
-    logoSize: 80,
-    logoPosition: 'top-center'
+    showWarning: true,
+    warningPosition: 'bottom'
   });
 
   const [itemForm, setItemForm] = useState({
@@ -139,6 +106,9 @@ export default function Editor() {
     try {
       const data = await api.getMenu(menuId);
       setMenu(data);
+      if (data.title) {
+        setDesign(prev => ({ ...prev, title: data.title }));
+      }
     } catch (error) {
       toast.error('Failed to load menu');
       navigate('/dashboard');
@@ -149,7 +119,7 @@ export default function Editor() {
 
   const createNewMenu = async () => {
     try {
-      const newMenu = await api.createMenu('Untitled Menu');
+      const newMenu = await api.createMenu('Restaurant Menu');
       setMenu(newMenu);
       navigate(`/editor/${newMenu.id}`, { replace: true });
     } catch (error) {
@@ -164,9 +134,9 @@ export default function Editor() {
     setSaving(true);
     try {
       await api.updateMenu(menu.id, {
-        title: menu.title,
+        title: design.title,
         items: menu.items,
-        include_warning: designSettings.includeWarning
+        include_warning: design.showWarning
       });
       toast.success('Menu saved!');
     } catch (error) {
@@ -178,13 +148,7 @@ export default function Editor() {
 
   const handleAddItem = () => {
     setEditingItem(null);
-    setItemForm({
-      name: '',
-      description: '',
-      price: '',
-      category: 'Appetizers',
-      image_url: ''
-    });
+    setItemForm({ name: '', description: '', price: '', category: 'Appetizers', image_url: '' });
     setShowItemDialog(true);
   };
 
@@ -203,28 +167,18 @@ export default function Editor() {
     const newItem = { ...itemForm, id: editingItem?.id || `item-${Date.now()}` };
 
     if (editingItem) {
-      setMenu({
-        ...menu,
-        items: menu.items.map(item => item.id === editingItem.id ? newItem : item)
-      });
+      setMenu({ ...menu, items: menu.items.map(item => item.id === editingItem.id ? newItem : item) });
       toast.success('Item updated');
     } else {
-      setMenu({
-        ...menu,
-        items: [...(menu.items || []), newItem]
-      });
+      setMenu({ ...menu, items: [...(menu.items || []), newItem] });
       toast.success('Item added');
     }
-
     setShowItemDialog(false);
   };
 
   const handleDeleteItem = (itemId) => {
     if (window.confirm('Delete this item?')) {
-      setMenu({
-        ...menu,
-        items: menu.items.filter(item => item.id !== itemId)
-      });
+      setMenu({ ...menu, items: menu.items.filter(item => item.id !== itemId) });
       toast.success('Item removed');
     }
   };
@@ -234,7 +188,6 @@ export default function Editor() {
       toast.error('Please enter a dish name first');
       return;
     }
-
     setGeneratingAI(true);
     try {
       const response = await api.generateDescription(itemForm.name, '', 'professional');
@@ -248,65 +201,18 @@ export default function Editor() {
   };
 
   const handleExportPDF = async () => {
-    const previewElement = document.getElementById('menu-preview');
-    if (!previewElement) return;
-
     toast.info('Generating PDF...');
-    
     try {
-      const canvas = await html2canvas(previewElement, {
-        scale: 2,
-        backgroundColor: designSettings.backgroundColor
-      });
-      
+      const element = document.getElementById('menu-preview');
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: design.backgroundColor });
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`${menu.title}.pdf`);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [design.pageWidth, canvas.height] });
+      pdf.addImage(imgData, 'PNG', 0, 0, design.pageWidth, canvas.height);
+      pdf.save(`${design.title}.pdf`);
       toast.success('PDF downloaded!');
     } catch (error) {
       toast.error('Failed to export PDF');
     }
-  };
-
-  const applyPreset = (preset) => {
-    const presets = {
-      classic: {
-        titleFont: 'Playfair Display',
-        bodyFont: 'DM Sans',
-        titleColor: '#1a1a1a',
-        backgroundColor: '#ffffff',
-        titleSize: 48,
-        itemNameSize: 20
-      },
-      modern: {
-        titleFont: 'Montserrat',
-        bodyFont: 'Inter',
-        titleColor: '#2d3748',
-        backgroundColor: '#f7fafc',
-        titleSize: 44,
-        itemNameSize: 18
-      },
-      elegant: {
-        titleFont: 'Lora',
-        bodyFont: 'Crimson Text',
-        titleColor: '#1a202c',
-        backgroundColor: '#fdfbf7',
-        titleSize: 52,
-        itemNameSize: 22
-      }
-    };
-    
-    setDesignSettings({ ...designSettings, ...presets[preset] });
-    toast.success(`${preset.charAt(0).toUpperCase() + preset.slice(1)} preset applied`);
   };
 
   const groupedItems = (menu?.items || []).reduce((acc, item) => {
@@ -315,81 +221,56 @@ export default function Editor() {
     return acc;
   }, {});
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-paper grain flex items-center justify-center">
-        <p className="text-neutral-600">Loading editor...</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-neutral-900 flex items-center justify-center"><p className="text-white">Loading...</p></div>;
 
   return (
-    <div className="min-h-screen bg-neutral-100 flex flex-col">
-      {/* Top Toolbar */}
-      <div className="bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between shadow-sm">
+    <div className="h-screen flex flex-col bg-neutral-900">
+      {/* Top Bar */}
+      <div className="bg-neutral-800 border-b border-neutral-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button onClick={() => navigate('/dashboard')} variant="ghost" size="sm" className="rounded-lg">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+          <Button onClick={() => navigate('/dashboard')} variant="ghost" size="sm" className="text-white hover:bg-neutral-700">
+            <ArrowLeft className="w-4 h-4 mr-2" />Back
           </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <Input
-            value={menu?.title || ''}
-            onChange={(e) => setMenu({ ...menu, title: e.target.value })}
-            className="font-playfair font-bold text-lg border-2 w-64"
-            placeholder="Menu Title"
-          />
+          <div className="h-6 w-px bg-neutral-600" />
+          <ChefHat className="w-5 h-5 text-white" />
+          <span className="text-white font-semibold">MenuMaker Editor</span>
         </div>
-        
         <div className="flex items-center gap-2">
-          <Button onClick={handleSave} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white rounded-lg">
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save'}
+          <Button onClick={handleSave} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+            <Save className="w-4 h-4 mr-2" />{saving ? 'Saving...' : 'Save'}
           </Button>
-          <Button onClick={handleExportPDF} size="sm" variant="outline" className="rounded-lg">
-            <Download className="w-4 h-4 mr-2" />
-            Export PDF
+          <Button onClick={handleExportPDF} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Download className="w-4 h-4 mr-2" />Export PDF
           </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar - Items */}
-        <div className="w-64 bg-white border-r border-neutral-200 flex flex-col">
-          <div className="p-4 border-b border-neutral-200">
-            <h3 className="font-semibold text-sm text-neutral-700 mb-3">Menu Items</h3>
-            <Button onClick={handleAddItem} size="sm" className="w-full bg-terracotta hover:bg-terracotta/90 text-white rounded-lg">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
+        <div className="w-72 bg-neutral-800 border-r border-neutral-700 flex flex-col">
+          <div className="p-4 border-b border-neutral-700">
+            <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Menu Items</h3>
+            <Button onClick={handleAddItem} size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Plus className="w-4 h-4 mr-2" />Add Menu Item
             </Button>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto p-3">
             {(menu?.items || []).length === 0 ? (
-              <p className="text-xs text-neutral-400 text-center py-8">No items yet</p>
+              <p className="text-neutral-400 text-xs text-center py-8">No items yet. Click Add Menu Item to start.</p>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {(menu?.items || []).map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleEditItem(item)}
-                    className="p-2 rounded-lg hover:bg-neutral-50 cursor-pointer group flex justify-between items-center"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-neutral-900 truncate">{item.name}</p>
-                      <p className="text-xs text-neutral-500">${item.price}</p>
+                  <div key={item.id} onClick={() => handleEditItem(item)} className="bg-neutral-700 hover:bg-neutral-600 p-3 rounded-lg cursor-pointer group transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium text-sm truncate">{item.name}</p>
+                        <p className="text-emerald-400 text-xs font-semibold mt-1">${item.price}</p>
+                        <p className="text-neutral-400 text-xs mt-1">{item.category}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1 h-auto">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteItem(item.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 h-auto hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -398,474 +279,324 @@ export default function Editor() {
         </div>
 
         {/* Center - Preview */}
-        <div className="flex-1 overflow-auto p-8 bg-neutral-100">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 overflow-auto bg-neutral-900 p-8">
+          <div className="max-w-5xl mx-auto">
             <div
               id="menu-preview"
-              className="shadow-2xl bg-white"
+              className="shadow-2xl mx-auto"
               style={{
-                width: designSettings.pageWidth,
-                minHeight: designSettings.pageHeight,
-                padding: `${designSettings.paddingTop}px ${designSettings.paddingSides}px ${designSettings.paddingBottom}px`,
-                backgroundColor: designSettings.backgroundColor,
-                border: designSettings.pageBorder ? `${designSettings.pageBorderWidth}px solid ${designSettings.pageBorderColor}` : 'none'
+                width: `${design.pageWidth}px`,
+                minHeight: '1000px',
+                backgroundColor: design.backgroundColor,
+                backgroundImage: design.backgroundImage ? `url(${design.backgroundImage})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                padding: `${design.padding}px`,
+                position: 'relative'
               }}
             >
-              {/* Title Section */}
-              <div
-                className="mb-12"
-                style={{
-                  textAlign: designSettings.titleAlign,
-                  borderBottom: designSettings.titleBorderBottom ? `${designSettings.titleBorderWidth}px ${designSettings.titleBorderStyle} ${designSettings.titleBorderColor}` : 'none',
-                  paddingBottom: designSettings.titleBorderBottom ? '24px' : '0'
-                }}
-              >
-                <h1
-                  style={{
-                    fontFamily: designSettings.titleFont,
-                    fontSize: `${designSettings.titleSize}px`,
-                    color: designSettings.titleColor,
-                    fontWeight: 'bold',
-                    marginBottom: '8px',
-                    textTransform: designSettings.titleUppercase ? 'uppercase' : 'none',
-                    letterSpacing: designSettings.titleUppercase ? '2px' : 'normal'
-                  }}
-                >
-                  {menu?.title || 'Untitled Menu'}
-                </h1>
-                <p
-                  style={{
-                    fontFamily: designSettings.bodyFont,
-                    fontSize: `${designSettings.subtitleSize}px`,
-                    color: designSettings.descriptionColor
-                  }}
-                >
-                  A curated selection
-                </p>
-              </div>
-
-              {/* Warning Top */}
-              {designSettings.includeWarning && designSettings.warningPosition === 'top' && (
-                <div className="mb-8 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p style={{ fontSize: `${designSettings.warningSize}px` }} className="text-orange-800 leading-relaxed">
-                    <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+              {design.backgroundImage && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: design.backgroundColor, opacity: (100 - design.backgroundOpacity) / 100 }} />
+              )}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                {/* Title Section */}
+                <div className="mb-12" style={{ textAlign: design.titleAlign, borderBottom: design.showTitleBorder ? `2px solid ${design.titleBorderColor}` : 'none', paddingBottom: design.showTitleBorder ? '20px' : '0' }}>
+                  <h1 style={{ fontFamily: design.titleFont, fontSize: `${design.titleSize}px`, color: design.titleColor, fontWeight: 'bold', lineHeight: 1.2, marginBottom: '12px' }}>
+                    {design.title}
+                  </h1>
+                  <p style={{ fontFamily: design.subtitleFont, fontSize: `${design.subtitleSize}px`, color: design.subtitleColor, marginTop: '8px' }}>
+                    {design.subtitle}
                   </p>
                 </div>
-              )}
 
-              {/* Menu Items */}
-              {Object.keys(groupedItems).length === 0 ? (
-                <div className="text-center py-20 text-neutral-400">
-                  <p>Add items to see your menu preview</p>
-                </div>
-              ) : (
-                <div style={{ marginTop: `${designSettings.categorySpacing}px` }}>
-                  {Object.entries(groupedItems).map(([category, items], catIndex) => (
-                    <div
-                      key={category}
-                      style={{
-                        marginBottom: catIndex < Object.keys(groupedItems).length - 1 ? `${designSettings.categorySpacing}px` : '0'
-                      }}
-                    >
-                      <h2
-                        style={{
-                          fontFamily: designSettings.titleFont,
-                          fontSize: `${designSettings.categorySize}px`,
-                          color: designSettings.categoryColor,
+                {/* Warning Top */}
+                {design.showWarning && design.warningPosition === 'top' && (
+                  <div className="mb-8 p-4 bg-orange-100 border-2 border-orange-400 rounded-lg">
+                    <p className="text-orange-900 text-xs leading-relaxed font-medium">
+                      <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                    </p>
+                  </div>
+                )}
+
+                {/* Menu Items */}
+                {Object.keys(groupedItems).length === 0 ? (
+                  <div className="text-center py-20" style={{ color: design.descriptionColor }}>
+                    <p className="text-lg">Add menu items to see your design</p>
+                  </div>
+                ) : (
+                  <div>
+                    {Object.entries(groupedItems).map(([category, items], idx) => (
+                      <div key={category} style={{ marginBottom: idx < Object.keys(groupedItems).length - 1 ? `${design.categorySpacing}px` : '0' }}>
+                        <h2 style={{
+                          fontFamily: design.categoryFont,
+                          fontSize: `${design.categorySize}px`,
+                          color: design.categoryColor,
                           fontWeight: 'bold',
-                          marginBottom: `${designSettings.itemSpacing}px`,
-                          textAlign: designSettings.categoryAlign,
-                          textTransform: designSettings.categoryUppercase ? 'uppercase' : 'none',
-                          letterSpacing: designSettings.categoryUppercase ? '1px' : 'normal',
-                          borderBottom: designSettings.categoryBorderBottom ? `${designSettings.categoryBorderWidth}px ${designSettings.categoryBorderStyle} ${designSettings.categoryBorderColor}` : 'none',
-                          paddingBottom: designSettings.categoryBorderBottom ? '12px' : '0'
-                        }}
-                      >
-                        {category}
-                      </h2>
-                      <div>
-                        {items.map((item, itemIndex) => (
-                          <div
-                            key={item.id}
-                            style={{
-                              marginBottom: itemIndex < items.length - 1 ? `${designSettings.itemSpacing}px` : '0',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              gap: '16px'
-                            }}
-                          >
-                            <div style={{ flex: 1 }}>
-                              <h3
-                                style={{
-                                  fontFamily: designSettings.bodyFont,
-                                  fontSize: `${designSettings.itemNameSize}px`,
-                                  color: designSettings.itemNameColor,
-                                  fontWeight: designSettings.itemNameBold ? 'bold' : 'normal',
-                                  marginBottom: item.description ? '8px' : '0'
-                                }}
-                              >
-                                {item.name}
-                              </h3>
-                              {item.description && (
-                                <p
-                                  style={{
-                                    fontFamily: designSettings.bodyFont,
-                                    fontSize: `${designSettings.descriptionSize}px`,
-                                    color: designSettings.descriptionColor,
-                                    lineHeight: '1.6'
-                                  }}
-                                >
-                                  {item.description}
-                                </p>
-                              )}
+                          marginBottom: `${design.itemSpacing}px`,
+                          textTransform: design.categoryUppercase ? 'uppercase' : 'none',
+                          letterSpacing: design.categoryUppercase ? '2px' : 'normal',
+                          borderBottom: design.showCategoryBorder ? `1px solid ${design.categoryBorderColor}` : 'none',
+                          paddingBottom: design.showCategoryBorder ? '12px' : '0'
+                        }}>
+                          {category}
+                        </h2>
+                        <div>
+                          {items.map((item, itemIdx) => (
+                            <div key={item.id} style={{ marginBottom: itemIdx < items.length - 1 ? `${design.itemSpacing}px` : '0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}>
+                              <div style={{ flex: 1 }}>
+                                <h3 style={{ fontFamily: design.itemFont, fontSize: `${design.itemNameSize}px`, color: design.itemNameColor, fontWeight: '600', marginBottom: item.description ? '8px' : '0' }}>
+                                  {item.name}
+                                </h3>
+                                {item.description && (
+                                  <p style={{ fontFamily: design.itemFont, fontSize: `${design.descriptionSize}px`, color: design.descriptionColor, lineHeight: '1.6' }}>
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div style={{ fontFamily: design.priceFont, fontSize: `${design.priceSize}px`, color: design.priceColor, fontWeight: 'bold', flexShrink: 0 }}>
+                                ${item.price}
+                              </div>
                             </div>
-                            <div
-                              style={{
-                                fontFamily: designSettings.priceFont,
-                                fontSize: `${designSettings.priceSize}px`,
-                                color: designSettings.priceColor,
-                                fontWeight: 'bold',
-                                flexShrink: 0
-                              }}
-                            >
-                              ${item.price}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
-              {/* Warning Bottom */}
-              {designSettings.includeWarning && designSettings.warningPosition === 'bottom' && (
-                <div className="mt-12 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p style={{ fontSize: `${designSettings.warningSize}px` }} className="text-orange-800 leading-relaxed">
-                    <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
-                  </p>
-                </div>
-              )}
+                {/* Warning Bottom */}
+                {design.showWarning && design.warningPosition === 'bottom' && (
+                  <div className="mt-12 p-4 bg-orange-100 border-2 border-orange-400 rounded-lg">
+                    <p className="text-orange-900 text-xs leading-relaxed font-medium">
+                      <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right Sidebar - Design Controls */}
-        <div className="w-80 bg-white border-l border-neutral-200 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="font-semibold text-sm text-neutral-700 mb-4 flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Design Settings
-            </h3>
+        <div className="w-96 bg-neutral-800 border-l border-neutral-700 overflow-y-auto">
+          <Tabs defaultValue="text" className="w-full">
+            <TabsList className="w-full grid grid-cols-3 bg-neutral-700 p-1 m-2 rounded-lg">
+              <TabsTrigger value="text" className="data-[state=active]:bg-neutral-600 text-white text-xs py-2">
+                <Type className="w-4 h-4 mr-1" />Text
+              </TabsTrigger>
+              <TabsTrigger value="style" className="data-[state=active]:bg-neutral-600 text-white text-xs py-2">
+                <Palette className="w-4 h-4 mr-1" />Style
+              </TabsTrigger>
+              <TabsTrigger value="layout" className="data-[state=active]:bg-neutral-600 text-white text-xs py-2">
+                <LayoutIcon className="w-4 h-4 mr-1" />Layout
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Quick Presets */}
-            <div className="mb-6">
-              <Label className="text-xs font-medium text-neutral-600 mb-2 block">Quick Presets</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <Button onClick={() => applyPreset('classic')} size="sm" variant="outline" className="text-xs">Classic</Button>
-                <Button onClick={() => applyPreset('modern')} size="sm" variant="outline" className="text-xs">Modern</Button>
-                <Button onClick={() => applyPreset('elegant')} size="sm" variant="outline" className="text-xs">Elegant</Button>
+            {/* TEXT TAB */}
+            <TabsContent value="text" className="p-4 space-y-6">
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide flex items-center gap-2">
+                  <Edit3 className="w-4 h-4" />Title & Subtitle
+                </h4>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Menu Title</Label>
+                  <Input value={design.title} onChange={(e) => setDesign({ ...design, title: e.target.value })} className="bg-neutral-600 border-neutral-500 text-white" placeholder="Restaurant Menu" />
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Subtitle (2nd Line)</Label>
+                  <Input value={design.subtitle} onChange={(e) => setDesign({ ...design, subtitle: e.target.value })} className="bg-neutral-600 border-neutral-500 text-white" placeholder="A curated selection" />
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Title Font</Label>
+                  <Select value={design.titleFont} onValueChange={(v) => setDesign({ ...design, titleFont: v })}>
+                    <SelectTrigger className="bg-neutral-600 border-neutral-500 text-white h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-neutral-700 border-neutral-600 text-white max-h-60">
+                      {FONTS.map(f => <SelectItem key={f} value={f} className="hover:bg-neutral-600">{f}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Title Size: {design.titleSize}px</Label>
+                  <Slider value={[design.titleSize]} onValueChange={(v) => setDesign({ ...design, titleSize: v[0] })} min={32} max={80} step={2} className="mt-2" />
+                </div>
               </div>
-            </div>
 
-            <Separator className="my-4" />
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Menu Items</h4>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Item Font</Label>
+                  <Select value={design.itemFont} onValueChange={(v) => setDesign({ ...design, itemFont: v })}>
+                    <SelectTrigger className="bg-neutral-600 border-neutral-500 text-white h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-neutral-700 border-neutral-600 text-white max-h-60">
+                      {FONTS.map(f => <SelectItem key={f} value={f} className="hover:bg-neutral-600">{f}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Item Name Size: {design.itemNameSize}px</Label>
+                  <Slider value={[design.itemNameSize]} onValueChange={(v) => setDesign({ ...design, itemNameSize: v[0] })} min={14} max={36} step={1} className="mt-2" />
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Description Size: {design.descriptionSize}px</Label>
+                  <Slider value={[design.descriptionSize]} onValueChange={(v) => setDesign({ ...design, descriptionSize: v[0] })} min={10} max={22} step={1} className="mt-2" />
+                </div>
+              </div>
+            </TabsContent>
 
-            {/* Design Tabs */}
-            <div className="space-y-6">
-              {/* Typography Section */}
-              <div>
-                <h4 className="font-medium text-sm text-neutral-800 mb-3">Typography</h4>
-                
-                <div className="space-y-3">
+            {/* STYLE TAB */}
+            <TabsContent value="style" className="p-4 space-y-6">
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Colors</h4>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Title Font</Label>
-                    <Select value={designSettings.titleFont} onValueChange={(v) => setDesignSettings({ ...designSettings, titleFont: v })}>
-                      <SelectTrigger className="h-8 text-xs mt-1">
+                    <Label className="text-neutral-300 text-xs mb-2 block">Title Color</Label>
+                    <Input type="color" value={design.titleColor} onChange={(e) => setDesign({ ...design, titleColor: e.target.value })} className="h-10 cursor-pointer" />
+                  </div>
+                  <div>
+                    <Label className="text-neutral-300 text-xs mb-2 block">Price Color</Label>
+                    <Input type="color" value={design.priceColor} onChange={(e) => setDesign({ ...design, priceColor: e.target.value })} className="h-10 cursor-pointer" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-neutral-300 text-xs mb-2 block">Background Color</Label>
+                    <Input type="color" value={design.backgroundColor} onChange={(e) => setDesign({ ...design, backgroundColor: e.target.value })} className="h-10 cursor-pointer" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />Background Image
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {BACKGROUND_IMAGES.map(bg => (
+                    <button
+                      key={bg.name}
+                      onClick={() => setDesign({ ...design, backgroundImage: bg.url })}
+                      className="relative h-20 rounded-lg overflow-hidden border-2 transition-all hover:scale-105"
+                      style={{ borderColor: design.backgroundImage === bg.url ? '#10b981' : '#525252' }}
+                    >
+                      {bg.url ? (
+                        <img src={bg.url} alt={bg.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-neutral-600 flex items-center justify-center">
+                          <span className="text-neutral-400 text-xs">None</span>
+                        </div>
+                      )}
+                      {design.backgroundImage === bg.url && (
+                        <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
+                          <div className="bg-emerald-500 rounded-full p-1">
+                            <Eye className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {design.backgroundImage && (
+                  <div>
+                    <Label className="text-neutral-300 text-xs mb-2 block">Background Opacity: {design.backgroundOpacity}%</Label>
+                    <Slider value={[design.backgroundOpacity]} onValueChange={(v) => setDesign({ ...design, backgroundOpacity: v[0] })} min={0} max={100} step={5} className="mt-2" />
+                  </div>
+                )}
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Custom Image URL</Label>
+                  <Input value={design.backgroundImage} onChange={(e) => setDesign({ ...design, backgroundImage: e.target.value })} className="bg-neutral-600 border-neutral-500 text-white text-xs" placeholder="https://..." />
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* LAYOUT TAB */}
+            <TabsContent value="layout" className="p-4 space-y-6">
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Spacing</h4>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Page Width: {design.pageWidth}px</Label>
+                  <Slider value={[design.pageWidth]} onValueChange={(v) => setDesign({ ...design, pageWidth: v[0] })} min={600} max={1000} step={50} className="mt-2" />
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Page Padding: {design.padding}px</Label>
+                  <Slider value={[design.padding]} onValueChange={(v) => setDesign({ ...design, padding: v[0] })} min={20} max={100} step={10} className="mt-2" />
+                </div>
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Item Spacing: {design.itemSpacing}px</Label>
+                  <Slider value={[design.itemSpacing]} onValueChange={(v) => setDesign({ ...design, itemSpacing: v[0] })} min={12} max={60} step={4} className="mt-2" />
+                </div>
+              </div>
+
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Borders</h4>
+                <div className="flex items-center justify-between">
+                  <Label className="text-neutral-300 text-xs">Title Border</Label>
+                  <Switch checked={design.showTitleBorder} onCheckedChange={(v) => setDesign({ ...design, showTitleBorder: v })} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-neutral-300 text-xs">Category Border</Label>
+                  <Switch checked={design.showCategoryBorder} onCheckedChange={(v) => setDesign({ ...design, showCategoryBorder: v })} />
+                </div>
+              </div>
+
+              <div className="bg-neutral-700 p-4 rounded-lg space-y-4">
+                <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Food Safety Warning</h4>
+                <div className="flex items-center justify-between">
+                  <Label className="text-neutral-300 text-xs">Show Warning</Label>
+                  <Switch checked={design.showWarning} onCheckedChange={(v) => setDesign({ ...design, showWarning: v })} />
+                </div>
+                {design.showWarning && (
+                  <div>
+                    <Label className="text-neutral-300 text-xs mb-2 block">Position</Label>
+                    <Select value={design.warningPosition} onValueChange={(v) => setDesign({ ...design, warningPosition: v })}>
+                      <SelectTrigger className="bg-neutral-600 border-neutral-500 text-white h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                      <SelectContent className="bg-neutral-700 border-neutral-600 text-white">
+                        <SelectItem value="top" className="hover:bg-neutral-600">Top of Menu</SelectItem>
+                        <SelectItem value="bottom" className="hover:bg-neutral-600">Bottom of Menu</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div>
-                    <Label className="text-xs">Body Font</Label>
-                    <Select value={designSettings.bodyFont} onValueChange={(v) => setDesignSettings({ ...designSettings, bodyFont: v })}>
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Title Size: {designSettings.titleSize}px</Label>
-                    <Slider
-                      value={[designSettings.titleSize]}
-                      onValueChange={(v) => setDesignSettings({ ...designSettings, titleSize: v[0] })}
-                      min={24}
-                      max={72}
-                      step={2}
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Item Name Size: {designSettings.itemNameSize}px</Label>
-                    <Slider
-                      value={[designSettings.itemNameSize]}
-                      onValueChange={(v) => setDesignSettings({ ...designSettings, itemNameSize: v[0] })}
-                      min={14}
-                      max={32}
-                      step={1}
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Description Size: {designSettings.descriptionSize}px</Label>
-                    <Slider
-                      value={[designSettings.descriptionSize]}
-                      onValueChange={(v) => setDesignSettings({ ...designSettings, descriptionSize: v[0] })}
-                      min={10}
-                      max={20}
-                      step={1}
-                      className="mt-2"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
-
-              <Separator />
-
-              {/* Colors Section */}
-              <div>
-                <h4 className="font-medium text-sm text-neutral-800 mb-3">Colors</h4>
-                
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Title</Label>
-                      <Input
-                        type="color"
-                        value={designSettings.titleColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, titleColor: e.target.value })}
-                        className="h-8 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Price</Label>
-                      <Input
-                        type="color"
-                        value={designSettings.priceColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, priceColor: e.target.value })}
-                        className="h-8 mt-1"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Background</Label>
-                    <div className="grid grid-cols-3 gap-2 mt-1">
-                      {BACKGROUNDS.map(bg => (
-                        <button
-                          key={bg.value}
-                          onClick={() => setDesignSettings({ ...designSettings, backgroundColor: bg.value })}
-                          className="h-8 rounded border-2 hover:border-neutral-400 transition-colors"
-                          style={{
-                            backgroundColor: bg.value,
-                            borderColor: designSettings.backgroundColor === bg.value ? '#1a1a1a' : '#e5e5e5'
-                          }}
-                          title={bg.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Spacing Section */}
-              <div>
-                <h4 className="font-medium text-sm text-neutral-800 mb-3">Spacing</h4>
-                
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-xs">Page Padding: {designSettings.paddingSides}px</Label>
-                    <Slider
-                      value={[designSettings.paddingSides]}
-                      onValueChange={(v) => setDesignSettings({
-                        ...designSettings,
-                        paddingSides: v[0],
-                        paddingTop: v[0],
-                        paddingBottom: v[0]
-                      })}
-                      min={20}
-                      max={80}
-                      step={4}
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Item Spacing: {designSettings.itemSpacing}px</Label>
-                    <Slider
-                      value={[designSettings.itemSpacing]}
-                      onValueChange={(v) => setDesignSettings({ ...designSettings, itemSpacing: v[0] })}
-                      min={8}
-                      max={48}
-                      step={4}
-                      className="mt-2"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Borders Section */}
-              <div>
-                <h4 className="font-medium text-sm text-neutral-800 mb-3">Borders</h4>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Title Border</Label>
-                    <Switch
-                      checked={designSettings.titleBorderBottom}
-                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, titleBorderBottom: v })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Category Border</Label>
-                    <Switch
-                      checked={designSettings.categoryBorderBottom}
-                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, categoryBorderBottom: v })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Page Border</Label>
-                    <Switch
-                      checked={designSettings.pageBorder}
-                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, pageBorder: v })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Warning Section */}
-              <div>
-                <h4 className="font-medium text-sm text-neutral-800 mb-3">Food Safety Warning</h4>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Include Warning</Label>
-                    <Switch
-                      checked={designSettings.includeWarning}
-                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, includeWarning: v })}
-                    />
-                  </div>
-
-                  {designSettings.includeWarning && (
-                    <div>
-                      <Label className="text-xs">Position</Label>
-                      <Select
-                        value={designSettings.warningPosition}
-                        onValueChange={(v) => setDesignSettings({ ...designSettings, warningPosition: v })}
-                      >
-                        <SelectTrigger className="h-8 text-xs mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="top">Top</SelectItem>
-                          <SelectItem value="bottom">Bottom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
-      {/* Item Edit Dialog */}
+      {/* Item Dialog */}
       <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-neutral-800 border-neutral-700 text-white">
           <DialogHeader>
-            <DialogTitle className="font-playfair text-2xl">
-              {editingItem ? 'Edit Item' : 'Add New Item'}
-            </DialogTitle>
+            <DialogTitle className="text-white text-xl">{editingItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label htmlFor="item-name">Dish Name *</Label>
-              <Input
-                id="item-name"
-                value={itemForm.name}
-                onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                placeholder="e.g., Grilled Salmon"
-                className="mt-1"
-              />
+              <Label className="text-neutral-300 text-sm">Dish Name *</Label>
+              <Input value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white mt-1" placeholder="e.g., Grilled Salmon" />
             </div>
-
             <div>
               <div className="flex justify-between items-center mb-1">
-                <Label htmlFor="item-description">Description</Label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleGenerateDescription}
-                  disabled={generatingAI}
-                  className="h-7 text-xs"
-                >
-                  <Wand2 className="w-3 h-3 mr-1" />
-                  {generatingAI ? 'Generating...' : 'AI Generate'}
+                <Label className="text-neutral-300 text-sm">Description</Label>
+                <Button type="button" size="sm" onClick={handleGenerateDescription} disabled={generatingAI} className="bg-purple-600 hover:bg-purple-700 text-white h-7 text-xs">
+                  <Wand2 className="w-3 h-3 mr-1" />{generatingAI ? 'Generating...' : 'AI Generate'}
                 </Button>
               </div>
-              <Textarea
-                id="item-description"
-                value={itemForm.description}
-                onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                placeholder="Describe this delicious dish..."
-                rows={3}
-              />
+              <Textarea value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white" placeholder="Describe this dish..." rows={3} />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="item-price">Price *</Label>
-                <Input
-                  id="item-price"
-                  value={itemForm.price}
-                  onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                  placeholder="12.99"
-                  type="number"
-                  step="0.01"
-                  className="mt-1"
-                />
+                <Label className="text-neutral-300 text-sm">Price *</Label>
+                <Input value={itemForm.price} onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white mt-1" placeholder="12.99" type="number" step="0.01" />
               </div>
-
               <div>
-                <Label htmlFor="item-category">Category</Label>
-                <Select
-                  value={itemForm.category}
-                  onValueChange={(value) => setItemForm({ ...itemForm, category: value })}
-                >
-                  <SelectTrigger className="mt-1">
+                <Label className="text-neutral-300 text-sm">Category</Label>
+                <Select value={itemForm.category} onValueChange={(v) => setItemForm({ ...itemForm, category: v })}>
+                  <SelectTrigger className="bg-neutral-700 border-neutral-600 text-white mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-neutral-700 border-neutral-600 text-white">
                     <SelectItem value="Appetizers">Appetizers</SelectItem>
                     <SelectItem value="Main Course">Main Course</SelectItem>
                     <SelectItem value="Desserts">Desserts</SelectItem>
@@ -876,12 +607,9 @@ export default function Editor() {
                 </Select>
               </div>
             </div>
-
             <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setShowItemDialog(false)}>Cancel</Button>
-              <Button onClick={handleSaveItem} className="bg-charcoal text-white hover:bg-neutral-800">
-                {editingItem ? 'Update' : 'Add Item'}
-              </Button>
+              <Button variant="outline" onClick={() => setShowItemDialog(false)} className="border-neutral-600 text-white hover:bg-neutral-700">Cancel</Button>
+              <Button onClick={handleSaveItem} className="bg-emerald-600 hover:bg-emerald-700 text-white">{editingItem ? 'Update' : 'Add Item'}</Button>
             </div>
           </div>
         </DialogContent>
