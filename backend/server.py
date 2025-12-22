@@ -452,6 +452,148 @@ async def admin_delete_menu(menu_id: str, admin_id: str = Depends(require_admin)
         raise HTTPException(status_code=404, detail="Menu not found")
     return {"message": "Menu deleted successfully"}
 
+# File extraction helper functions
+def extract_text_from_pdf(file_bytes: bytes) -> str:
+    """Extract text from PDF file"""
+    try:
+        pdf_file = io.BytesIO(file_bytes)
+        reader = PdfReader(pdf_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to extract text from PDF: {str(e)}")
+
+def extract_text_from_docx(file_bytes: bytes) -> str:
+    """Extract text from Word document"""
+    try:
+        docx_file = io.BytesIO(file_bytes)
+        doc = Document(docx_file)
+        text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+        return text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to extract text from Word document: {str(e)}")
+
+def extract_text_from_image(file_bytes: bytes) -> str:
+    """Extract text from image using OCR"""
+    try:
+        image = Image.open(io.BytesIO(file_bytes))
+        text = pytesseract.image_to_string(image)
+        return text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to extract text from image: {str(e)}")
+
+async def parse_menu_items_with_ai(extracted_text: str) -> List[dict]:
+    """Use AI to parse extracted text into structured menu items"""
+    try:
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        session_id = f"menu-extraction-{uuid.uuid4()}"
+        
+        system_message = """You are a menu extraction expert. Parse the provided menu text and extract individual menu items.
+For each item, identify:
+- name: The dish name
+- description: Brief description (if available, otherwise empty string)
+- price: Price in decimal format (e.g., "12.99"). If no price found, use "0.00"
+- category: Classify as one of: Appetizers, Main Course, Desserts, Beverages, Salads, Sides
+
+Return ONLY a valid JSON array of objects. Example format:
+[{"name": "Grilled Salmon", "description": "Fresh Atlantic salmon", "price": "24.99", "category": "Main Course"}]
+
+If no items can be extracted, return an empty array: []"""
+        
+        user_text = f"Extract menu items from this text:\n\n{extracted_text}"
+        
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=session_id,
+            system_message=system_message
+        )
+        chat.with_model("openai", "gpt-5.1")
+        
+        user_message = UserMessage(text=user_text)
+        response = await chat.send_message(user_message)
+        
+        # Parse JSON response
+        import json
+        # Clean response - remove markdown code blocks if present
+        clean_response = response.strip()
+        if clean_response.startswith("```"):
+            clean_response = re.sub(r'```json?\n?', '', clean_response)
+            clean_response = re.sub(r'\n?```$', '', clean_response)
+        
+        items = json.loads(clean_response)
+        
+        # Add IDs to items
+        for item in items:
+            item['id'] = f"item-{uuid.uuid4()}"
+            item['image_url'] = ""
+        
+        return items
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parse error: {str(e)}, Response: {response}")
+        raise HTTPException(status_code=500, detail="Failed to parse AI response")
+    except Exception as e:
+        logging.error(f"AI parsing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse menu items: {str(e)}")
+
+@api_router.post("/import/upload")
+async def upload_menu_file(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user)
+):
+    """Upload and extract menu items from file (PDF, Word, or Image)"""
+    try:
+        # Validate file type
+        allowed_types = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/msword',
+            'image/jpeg',
+            'image/jpg',
+            'image/png'
+        ]
+        
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file type. Please upload PDF, Word document, or image (JPEG/PNG)"
+            )
+        
+        # Read file content
+        file_bytes = await file.read()
+        
+        # Extract text based on file type
+        extracted_text = ""
+        if file.content_type == 'application/pdf':
+            extracted_text = extract_text_from_pdf(file_bytes)
+        elif file.content_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']:
+            extracted_text = extract_text_from_docx(file_bytes)
+        elif file.content_type in ['image/jpeg', 'image/jpg', 'image/png']:
+            extracted_text = extract_text_from_image(file_bytes)
+        
+        if not extracted_text:
+            raise HTTPException(status_code=400, detail="No text could be extracted from the file")
+        
+        # Use AI to parse menu items
+        menu_items = await parse_menu_items_with_ai(extracted_text)
+        
+        return {
+            "success": True,
+            "extracted_text": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,
+            "items_found": len(menu_items),
+            "items": menu_items
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"File upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
+
 app.include_router(api_router)
 
 app.add_middleware(
