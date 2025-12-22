@@ -565,13 +565,16 @@ async def upload_menu_file(
             'application/msword',
             'image/jpeg',
             'image/jpg',
-            'image/png'
+            'image/png',
+            'text/plain'  # Allow text files
         ]
+        
+        logging.info(f"Received file: {file.filename}, content_type: {file.content_type}")
         
         if file.content_type not in allowed_types:
             raise HTTPException(
                 status_code=400,
-                detail="Unsupported file type. Please upload PDF, Word document, or image (JPEG/PNG)"
+                detail=f"Unsupported file type '{file.content_type}'. Please upload PDF, Word document, image (JPEG/PNG), or text file"
             )
         
         # Read file content
@@ -585,6 +588,8 @@ async def upload_menu_file(
             extracted_text = extract_text_from_docx(file_bytes)
         elif file.content_type in ['image/jpeg', 'image/jpg', 'image/png']:
             extracted_text = extract_text_from_image(file_bytes)
+        elif file.content_type == 'text/plain':
+            extracted_text = file_bytes.decode('utf-8')
         
         if not extracted_text:
             raise HTTPException(status_code=400, detail="No text could be extracted from the file")
