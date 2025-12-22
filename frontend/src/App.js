@@ -1,9 +1,3 @@
-/**
- * MenuMaker - Professional Menu Creation Platform
- * Copyright (c) 2025 BHdesignsbyBILLY - Billy Harman
- * All Rights Reserved.
- */
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -14,6 +8,9 @@ import Editor from './pages/Editor';
 import Templates from './pages/Templates';
 import Admin from './pages/Admin';
 import ImportMenu from './pages/ImportMenu';
+import Onboarding from './pages/Onboarding';
+import Help from './pages/Help';
+import Feedback from './pages/Feedback';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import '@/App.css';
 
@@ -30,11 +27,14 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
             <Route path="/templates" element={<PrivateRoute><Templates /></PrivateRoute>} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/editor/:menuId?" element={<PrivateRoute><Editor /></PrivateRoute>} />
             <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
             <Route path="/import" element={<PrivateRoute><ImportMenu /></PrivateRoute>} />
+            <Route path="/help" element={<PrivateRoute><Help /></PrivateRoute>} />
+            <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
           </Routes>
           <Toaster position="top-right" richColors />
         </div>
