@@ -58,7 +58,8 @@ export default function ImportMenu() {
       'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png']
+      'image/png': ['.png'],
+      'text/plain': ['.txt']
     },
     multiple: false,
     disabled: uploading
@@ -128,7 +129,7 @@ export default function ImportMenu() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <div className="text-center">
               <h1 className="font-playfair text-4xl md:text-5xl font-bold text-charcoal mb-4">Transform Your Old Menu</h1>
-              <p className="text-xl text-neutral-600 max-w-2xl mx-auto">Upload your existing menu in PDF, JPEG, or Word format and we'll extract the items for you!</p>
+              <p className="text-xl text-neutral-600 max-w-2xl mx-auto">Upload your existing menu in PDF, Word, TXT, or image format and we'll extract the items for you!</p>
             </div>
 
             <div {...getRootProps()} className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
@@ -152,7 +153,7 @@ export default function ImportMenu() {
                     <div className="flex items-center justify-center gap-6 text-neutral-500">
                       <div className="flex items-center gap-2"><FileText className="w-5 h-5" /><span className="text-sm">PDF</span></div>
                       <div className="flex items-center gap-2"><ImageIcon className="w-5 h-5" /><span className="text-sm">JPEG/PNG</span></div>
-                      <div className="flex items-center gap-2"><File className="w-5 h-5" /><span className="text-sm">Word</span></div>
+                      <div className="flex items-center gap-2"><File className="w-5 h-5" /><span className="text-sm">Word/TXT</span></div>
                     </div>
                     <p className="text-xs text-neutral-400">Maximum file size: 10MB</p>
                   </>
