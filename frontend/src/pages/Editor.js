@@ -617,13 +617,22 @@ export default function Editor() {
               <Input value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white mt-1" placeholder="e.g., Grilled Salmon" />
             </div>
             <div>
+              <Label className="text-neutral-300 text-sm">Key Ingredients (Optional)</Label>
+              <Input value={itemForm.ingredients || ''} onChange={(e) => setItemForm({ ...itemForm, ingredients: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white mt-1" placeholder="e.g., Atlantic salmon, lemon butter, herbs" />
+              <p className="text-neutral-400 text-xs mt-1">Help AI generate better descriptions</p>
+            </div>
+            <div>
               <div className="flex justify-between items-center mb-1">
                 <Label className="text-neutral-300 text-sm">Description</Label>
                 <Button type="button" size="sm" onClick={handleGenerateDescription} disabled={generatingAI} className="bg-purple-600 hover:bg-purple-700 text-white h-7 text-xs">
-                  <Wand2 className="w-3 h-3 mr-1" />{generatingAI ? 'Generating...' : 'AI Generate'}
+                  <Wand2 className="w-3 h-3 mr-1" />{generatingAI ? 'Generating...' : 'AI Chef Description'}
                 </Button>
               </div>
-              <Textarea value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white" placeholder="Describe this dish..." rows={3} />
+              <Textarea value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} className="bg-neutral-700 border-neutral-600 text-white" placeholder="AI will generate a chef-inspired description..." rows={3} />
+              <p className="text-emerald-400 text-xs mt-1 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                AI creates short, professional, chef-quality descriptions
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
