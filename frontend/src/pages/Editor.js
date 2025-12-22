@@ -91,7 +91,8 @@ export default function Editor() {
     description: '',
     price: '',
     category: 'Appetizers',
-    image_url: ''
+    image_url: '',
+    ingredients: ''
   });
 
   useEffect(() => {
@@ -148,7 +149,7 @@ export default function Editor() {
 
   const handleAddItem = () => {
     setEditingItem(null);
-    setItemForm({ name: '', description: '', price: '', category: 'Appetizers', image_url: '' });
+    setItemForm({ name: '', description: '', price: '', category: 'Appetizers', image_url: '', ingredients: '' });
     setShowItemDialog(true);
   };
 
@@ -190,9 +191,9 @@ export default function Editor() {
     }
     setGeneratingAI(true);
     try {
-      const response = await api.generateDescription(itemForm.name, '', 'professional');
+      const response = await api.generateDescription(itemForm.name, itemForm.ingredients || '', 'chef');
       setItemForm({ ...itemForm, description: response.description });
-      toast.success('Description generated!');
+      toast.success('Chef-inspired description generated!');
     } catch (error) {
       toast.error('Failed to generate description');
     } finally {
