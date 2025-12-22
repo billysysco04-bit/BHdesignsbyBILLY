@@ -498,41 +498,54 @@ export default function Editor() {
                 <h4 className="text-white font-semibold text-sm uppercase tracking-wide flex items-center gap-2">
                   <ImageIcon className="w-4 h-4" />Background Image
                 </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {BACKGROUND_IMAGES.map(bg => (
-                    <button
-                      key={bg.name}
-                      onClick={() => setDesign({ ...design, backgroundImage: bg.url })}
-                      className="relative h-20 rounded-lg overflow-hidden border-2 transition-all hover:scale-105"
-                      style={{ borderColor: design.backgroundImage === bg.url ? '#10b981' : '#525252' }}
-                    >
-                      {bg.url ? (
-                        <img src={bg.url} alt={bg.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-neutral-600 flex items-center justify-center">
-                          <span className="text-neutral-400 text-xs">None</span>
-                        </div>
-                      )}
-                      {design.backgroundImage === bg.url && (
-                        <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
-                          <div className="bg-emerald-500 rounded-full p-1">
-                            <Eye className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                
+                {/* Upload Button */}
+                <div {...getBackgroundProps()} className="border-2 border-dashed border-neutral-500 rounded-lg p-4 text-center cursor-pointer hover:border-emerald-500 transition-colors bg-neutral-600">
+                  <input {...getBackgroundInputProps()} />
+                  <Upload className="w-6 h-6 text-neutral-400 mx-auto mb-2" />
+                  <p className="text-neutral-300 text-xs font-medium">Upload Your Image</p>
+                  <p className="text-neutral-400 text-xs mt-1">Click or drag image (Max 5MB)</p>
                 </div>
+
+                {/* Preset Images */}
+                <div>
+                  <Label className="text-neutral-300 text-xs mb-2 block">Or Choose Preset</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {BACKGROUND_IMAGES.map(bg => (
+                      <button
+                        key={bg.name}
+                        onClick={() => setDesign({ ...design, backgroundImage: bg.url })}
+                        className="relative h-20 rounded-lg overflow-hidden border-2 transition-all hover:scale-105 group"
+                        style={{ borderColor: design.backgroundImage === bg.url ? '#10b981' : '#525252' }}
+                      >
+                        {bg.url ? (
+                          <img src={bg.url} alt={bg.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-neutral-600 flex items-center justify-center">
+                            <span className="text-neutral-400 text-xs font-medium">None</span>
+                          </div>
+                        )}
+                        {design.backgroundImage === bg.url && (
+                          <div className="absolute inset-0 bg-emerald-500/30 flex items-center justify-center">
+                            <div className="bg-emerald-500 rounded-full p-1.5">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
+                          <p className="text-white text-xs font-medium truncate">{bg.name}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {design.backgroundImage && (
                   <div>
                     <Label className="text-neutral-300 text-xs mb-2 block">Background Opacity: {design.backgroundOpacity}%</Label>
                     <Slider value={[design.backgroundOpacity]} onValueChange={(v) => setDesign({ ...design, backgroundOpacity: v[0] })} min={0} max={100} step={5} className="mt-2" />
                   </div>
                 )}
-                <div>
-                  <Label className="text-neutral-300 text-xs mb-2 block">Custom Image URL</Label>
-                  <Input value={design.backgroundImage} onChange={(e) => setDesign({ ...design, backgroundImage: e.target.value })} className="bg-neutral-600 border-neutral-500 text-white text-xs" placeholder="https://..." />
-                </div>
               </div>
             </TabsContent>
 
