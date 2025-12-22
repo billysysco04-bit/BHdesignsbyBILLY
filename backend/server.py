@@ -479,10 +479,21 @@ def extract_text_from_image(file_bytes: bytes) -> str:
     """Extract text from image using OCR"""
     try:
         image = Image.open(io.BytesIO(file_bytes))
-        text = pytesseract.image_to_string(image)
-        return text.strip()
+        # Try to use tesseract
+        try:
+            text = pytesseract.image_to_string(image)
+            return text.strip()
+        except Exception as ocr_error:
+            # If tesseract fails, return a helpful error
+            logging.warning(f"OCR not available: {str(ocr_error)}")
+            raise HTTPException(
+                status_code=400, 
+                detail="OCR is not available on this server. Please upload a PDF or Word document instead of an image."
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to extract text from image: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
 async def parse_menu_items_with_ai(extracted_text: str) -> List[dict]:
     """Use AI to parse extracted text into structured menu items"""
