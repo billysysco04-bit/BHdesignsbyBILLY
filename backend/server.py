@@ -68,6 +68,27 @@ class User(BaseModel):
     name: str
     is_admin: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+class RestaurantProfile(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    user_id: str
+    restaurant_name: str
+    logo_url: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RestaurantProfileCreate(BaseModel):
+    restaurant_name: str
+    logo_url: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -98,6 +119,7 @@ class Menu(BaseModel):
     title: str
     template_id: Optional[str] = None
     items: List[MenuItem] = []
+    include_warning: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -108,6 +130,7 @@ class MenuCreate(BaseModel):
 class MenuUpdate(BaseModel):
     title: Optional[str] = None
     items: Optional[List[MenuItem]] = None
+    include_warning: Optional[bool] = None
 
 class Template(BaseModel):
     model_config = ConfigDict(extra="ignore")
