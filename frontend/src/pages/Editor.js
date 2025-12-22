@@ -1,38 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, ArrowLeft, Plus, Trash2, Wand2, Download, Save, Settings, Type, Palette, Layout, AlertTriangle } from 'lucide-react';
+import { ChefHat, ArrowLeft, Plus, Trash2, Wand2, Download, Save, Settings, Undo, Redo, Copy, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Switch } from '../components/ui/switch';
 import { Slider } from '../components/ui/slider';
+import { Separator } from '../components/ui/separator';
 import { api } from '../utils/api';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const FONTS = [
-  { name: 'Playfair Display', value: 'Playfair Display, serif' },
-  { name: 'DM Sans', value: 'DM Sans, sans-serif' },
-  { name: 'Merriweather', value: 'Merriweather, serif' },
-  { name: 'Inter', value: 'Inter, sans-serif' },
-  { name: 'Lora', value: 'Lora, serif' },
-  { name: 'Roboto', value: 'Roboto, sans-serif' },
-  { name: 'Montserrat', value: 'Montserrat, sans-serif' },
-  { name: 'Crimson Text', value: 'Crimson Text, serif' }
+  'Playfair Display',
+  'DM Sans',
+  'Merriweather',
+  'Inter',
+  'Lora',
+  'Roboto',
+  'Montserrat',
+  'Crimson Text'
 ];
 
-const PRESET_COLORS = [
-  { name: 'Classic Black', primary: '#1a1a1a', secondary: '#666666', accent: '#000000' },
-  { name: 'Elegant Navy', primary: '#1e3a5f', secondary: '#4a6fa5', accent: '#2c5282' },
-  { name: 'Warm Terracotta', primary: '#e07a5f', secondary: '#f4a261', accent: '#d4623f' },
-  { name: 'Forest Green', primary: '#2d6a4f', secondary: '#52b788', accent: '#1b4332' },
-  { name: 'Royal Purple', primary: '#5a189a', secondary: '#9d4edd', accent: '#3c096c' },
-  { name: 'Burgundy', primary: '#800020', secondary: '#a0153e', accent: '#660018' }
+const BACKGROUNDS = [
+  { name: 'White', value: '#ffffff' },
+  { name: 'Cream', value: '#fdfbf7' },
+  { name: 'Light Gray', value: '#f5f5f5' },
+  { name: 'Beige', value: '#f5f5dc' },
+  { name: 'Light Blue', value: '#f0f8ff' },
+  { name: 'Light Green', value: '#f0fff0' },
+];
+
+const BORDER_STYLES = [
+  { name: 'None', value: 'none' },
+  { name: 'Solid', value: 'solid' },
+  { name: 'Dashed', value: 'dashed' },
+  { name: 'Dotted', value: 'dotted' },
+  { name: 'Double', value: 'double' }
 ];
 
 export default function Editor() {
@@ -44,25 +52,71 @@ export default function Editor() {
   const [editingItem, setEditingItem] = useState(null);
   const [showItemDialog, setShowItemDialog] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
-  const [showDesignPanel, setShowDesignPanel] = useState(true);
+  const [activeTab, setActiveTab] = useState('text');
 
-  // Design settings
   const [designSettings, setDesignSettings] = useState({
-    titleFont: 'Playfair Display, serif',
-    bodyFont: 'DM Sans, sans-serif',
+    // Typography
+    titleFont: 'Playfair Display',
+    bodyFont: 'DM Sans',
+    priceFont: 'Playfair Display',
     titleSize: 48,
     subtitleSize: 18,
+    categorySize: 28,
     itemNameSize: 20,
     descriptionSize: 14,
-    priceSize: 18,
-    primaryColor: '#1a1a1a',
-    secondaryColor: '#666666',
-    accentColor: '#e07a5f',
+    priceSize: 20,
+    
+    // Colors
+    titleColor: '#1a1a1a',
+    categoryColor: '#1a1a1a',
+    itemNameColor: '#1a1a1a',
+    descriptionColor: '#666666',
+    priceColor: '#e07a5f',
     backgroundColor: '#ffffff',
-    layout: 'single-column',
-    spacing: 'normal',
+    
+    // Spacing & Layout
+    pageWidth: '210mm',
+    pageHeight: '297mm',
+    paddingTop: 48,
+    paddingSides: 48,
+    paddingBottom: 48,
+    itemSpacing: 24,
+    categorySpacing: 40,
+    
+    // Borders & Decorations
+    titleBorderBottom: true,
+    titleBorderStyle: 'solid',
+    titleBorderWidth: 2,
+    titleBorderColor: '#1a1a1a',
+    categoryBorderBottom: true,
+    categoryBorderStyle: 'solid',
+    categoryBorderWidth: 1,
+    categoryBorderColor: '#666666',
+    pageBorder: false,
+    pageBorderWidth: 2,
+    pageBorderColor: '#1a1a1a',
+    
+    // Text Alignment
+    titleAlign: 'center',
+    categoryAlign: 'left',
+    itemAlign: 'left',
+    pricePosition: 'right',
+    
+    // Effects
+    titleUppercase: false,
+    categoryUppercase: true,
+    itemNameBold: true,
+    priceDisplay: 'inline',
+    
+    // Warning
     includeWarning: true,
-    warningPosition: 'bottom'
+    warningPosition: 'bottom',
+    warningSize: 11,
+    
+    // Logo
+    logoUrl: '',
+    logoSize: 80,
+    logoPosition: 'top-center'
   });
 
   const [itemForm, setItemForm] = useState({
@@ -166,11 +220,13 @@ export default function Editor() {
   };
 
   const handleDeleteItem = (itemId) => {
-    setMenu({
-      ...menu,
-      items: menu.items.filter(item => item.id !== itemId)
-    });
-    toast.success('Item removed');
+    if (window.confirm('Delete this item?')) {
+      setMenu({
+        ...menu,
+        items: menu.items.filter(item => item.id !== itemId)
+      });
+      toast.success('Item removed');
+    }
   };
 
   const handleGenerateDescription = async () => {
@@ -189,16 +245,6 @@ export default function Editor() {
     } finally {
       setGeneratingAI(false);
     }
-  };
-
-  const applyPresetColor = (preset) => {
-    setDesignSettings({
-      ...designSettings,
-      primaryColor: preset.primary,
-      secondaryColor: preset.secondary,
-      accentColor: preset.accent
-    });
-    toast.success(`Applied ${preset.name} color scheme`);
   };
 
   const handleExportPDF = async () => {
@@ -231,17 +277,43 @@ export default function Editor() {
     }
   };
 
+  const applyPreset = (preset) => {
+    const presets = {
+      classic: {
+        titleFont: 'Playfair Display',
+        bodyFont: 'DM Sans',
+        titleColor: '#1a1a1a',
+        backgroundColor: '#ffffff',
+        titleSize: 48,
+        itemNameSize: 20
+      },
+      modern: {
+        titleFont: 'Montserrat',
+        bodyFont: 'Inter',
+        titleColor: '#2d3748',
+        backgroundColor: '#f7fafc',
+        titleSize: 44,
+        itemNameSize: 18
+      },
+      elegant: {
+        titleFont: 'Lora',
+        bodyFont: 'Crimson Text',
+        titleColor: '#1a202c',
+        backgroundColor: '#fdfbf7',
+        titleSize: 52,
+        itemNameSize: 22
+      }
+    };
+    
+    setDesignSettings({ ...designSettings, ...presets[preset] });
+    toast.success(`${preset.charAt(0).toUpperCase() + preset.slice(1)} preset applied`);
+  };
+
   const groupedItems = (menu?.items || []).reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
   }, {});
-
-  const spacingClass = {
-    'compact': 'space-y-6',
-    'normal': 'space-y-10',
-    'spacious': 'space-y-16'
-  }[designSettings.spacing];
 
   if (loading) {
     return (
@@ -252,359 +324,502 @@ export default function Editor() {
   }
 
   return (
-    <div className="min-h-screen bg-paper grain">
-      <header className="border-b border-neutral-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-full px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Button onClick={() => navigate('/dashboard')} data-testid="back-button" variant="ghost" className="rounded-full">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Input
-              value={menu?.title || ''}
-              onChange={(e) => setMenu({ ...menu, title: e.target.value })}
-              data-testid="menu-title-input"
-              className="text-xl font-playfair font-bold border-2 focus:ring-0 max-w-md"
-              placeholder="Menu Title"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => setShowDesignPanel(!showDesignPanel)}
-              variant="outline"
-              className="border-sage text-sage hover:bg-sage/10 rounded-full"
-              data-testid="toggle-design-panel"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Design
-            </Button>
-            <Button onClick={handleExportPDF} data-testid="export-pdf-button" variant="outline" className="border-charcoal text-charcoal hover:bg-neutral-50 rounded-full">
-              <Download className="w-4 h-4 mr-2" />
-              Export PDF
-            </Button>
-            <Button onClick={handleSave} data-testid="save-menu-button" disabled={saving} className="bg-charcoal text-white hover:bg-neutral-800 rounded-full">
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* Left Panel - Items List */}
-        <div className="w-64 border-r border-neutral-200 bg-white p-4 overflow-y-auto">
-          <Button onClick={handleAddItem} data-testid="add-item-button" className="w-full bg-terracotta text-white hover:bg-terracotta/90 rounded-full mb-4">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
+    <div className="min-h-screen bg-neutral-100 flex flex-col">
+      {/* Top Toolbar */}
+      <div className="bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button onClick={() => navigate('/dashboard')} variant="ghost" size="sm" className="rounded-lg">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
           </Button>
-
-          <div className="space-y-2" data-testid="items-list">
-            {(menu?.items || []).map((item) => (
-              <div
-                key={item.id}
-                className="p-3 border border-neutral-200 rounded-lg hover:bg-neutral-50 cursor-pointer group flex justify-between items-center"
-                onClick={() => handleEditItem(item)}
-                data-testid={`item-row-${item.id}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-charcoal text-sm truncate">{item.name}</p>
-                  <p className="text-xs text-neutral-500">{item.category}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteItem(item.id);
-                  }}
-                  data-testid={`delete-item-${item.id}`}
-                  className="opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 p-1"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            ))}
-          </div>
+          <Separator orientation="vertical" className="h-6" />
+          <Input
+            value={menu?.title || ''}
+            onChange={(e) => setMenu({ ...menu, title: e.target.value })}
+            className="font-playfair font-bold text-lg border-2 w-64"
+            placeholder="Menu Title"
+          />
         </div>
+        
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSave} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white rounded-lg">
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+          <Button onClick={handleExportPDF} size="sm" variant="outline" className="rounded-lg">
+            <Download className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
+      </div>
 
-        {/* Design Panel */}
-        {showDesignPanel && (
-          <div className="w-80 border-r border-neutral-200 bg-white p-6 overflow-y-auto">
-            <h3 className="font-playfair text-lg font-bold text-charcoal mb-4 flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Design Settings
-            </h3>
-
-            <Tabs defaultValue="typography" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="typography"><Type className="w-4 h-4" /></TabsTrigger>
-                <TabsTrigger value="colors"><Palette className="w-4 h-4" /></TabsTrigger>
-                <TabsTrigger value="layout"><Layout className="w-4 h-4" /></TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="typography" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Title Font</Label>
-                  <Select value={designSettings.titleFont} onValueChange={(v) => setDesignSettings({ ...designSettings, titleFont: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FONTS.map(f => <SelectItem key={f.value} value={f.value}>{f.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Body Font</Label>
-                  <Select value={designSettings.bodyFont} onValueChange={(v) => setDesignSettings({ ...designSettings, bodyFont: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FONTS.map(f => <SelectItem key={f.value} value={f.value}>{f.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Title Size: {designSettings.titleSize}px</Label>
-                  <Slider value={[designSettings.titleSize]} onValueChange={(v) => setDesignSettings({ ...designSettings, titleSize: v[0] })} min={24} max={72} step={2} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Item Name Size: {designSettings.itemNameSize}px</Label>
-                  <Slider value={[designSettings.itemNameSize]} onValueChange={(v) => setDesignSettings({ ...designSettings, itemNameSize: v[0] })} min={14} max={32} step={1} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Description Size: {designSettings.descriptionSize}px</Label>
-                  <Slider value={[designSettings.descriptionSize]} onValueChange={(v) => setDesignSettings({ ...designSettings, descriptionSize: v[0] })} min={10} max={20} step={1} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Price Size: {designSettings.priceSize}px</Label>
-                  <Slider value={[designSettings.priceSize]} onValueChange={(v) => setDesignSettings({ ...designSettings, priceSize: v[0] })} min={14} max={28} step={1} />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="colors" className="space-y-4 mt-4">
-                <div className="space-y-3">
-                  {PRESET_COLORS.map(preset => (
-                    <button
-                      key={preset.name}
-                      onClick={() => applyPresetColor(preset)}
-                      className="w-full p-3 border border-neutral-200 rounded-lg hover:bg-neutral-50 flex items-center justify-between"
-                    >
-                      <span className="text-sm font-medium">{preset.name}</span>
-                      <div className="flex gap-1">
-                        <div className="w-6 h-6 rounded" style={{ backgroundColor: preset.primary }} />
-                        <div className="w-6 h-6 rounded" style={{ backgroundColor: preset.secondary }} />
-                        <div className="w-6 h-6 rounded" style={{ backgroundColor: preset.accent }} />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="border-t pt-4 space-y-3">
-                  <div className="space-y-2">
-                    <Label>Primary Color</Label>
-                    <Input type="color" value={designSettings.primaryColor} onChange={(e) => setDesignSettings({ ...designSettings, primaryColor: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Secondary Color</Label>
-                    <Input type="color" value={designSettings.secondaryColor} onChange={(e) => setDesignSettings({ ...designSettings, secondaryColor: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Accent Color</Label>
-                    <Input type="color" value={designSettings.accentColor} onChange={(e) => setDesignSettings({ ...designSettings, accentColor: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Background Color</Label>
-                    <Input type="color" value={designSettings.backgroundColor} onChange={(e) => setDesignSettings({ ...designSettings, backgroundColor: e.target.value })} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="layout" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Layout Style</Label>
-                  <Select value={designSettings.layout} onValueChange={(v) => setDesignSettings({ ...designSettings, layout: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="single-column">Single Column</SelectItem>
-                      <SelectItem value="two-column">Two Column</SelectItem>
-                      <SelectItem value="grid">Grid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Spacing</Label>
-                  <Select value={designSettings.spacing} onValueChange={(v) => setDesignSettings({ ...designSettings, spacing: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="compact">Compact</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="spacious">Spacious</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-500" />
-                    Food Safety Warning
-                  </Label>
-                  <Switch checked={designSettings.includeWarning} onCheckedChange={(v) => setDesignSettings({ ...designSettings, includeWarning: v })} />
-                </div>
-
-                {designSettings.includeWarning && (
-                  <div className="space-y-2">
-                    <Label>Warning Position</Label>
-                    <Select value={designSettings.warningPosition} onValueChange={(v) => setDesignSettings({ ...designSettings, warningPosition: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="top">Top of Menu</SelectItem>
-                        <SelectItem value="bottom">Bottom of Menu</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar - Items */}
+        <div className="w-64 bg-white border-r border-neutral-200 flex flex-col">
+          <div className="p-4 border-b border-neutral-200">
+            <h3 className="font-semibold text-sm text-neutral-700 mb-3">Menu Items</h3>
+            <Button onClick={handleAddItem} size="sm" className="w-full bg-terracotta hover:bg-terracotta/90 text-white rounded-lg">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
+            </Button>
           </div>
-        )}
-
-        {/* Center - Preview */}
-        <div className="flex-1 bg-neutral-100 p-8 overflow-y-auto flex items-start justify-center">
-          <div
-            id="menu-preview"
-            data-testid="menu-preview"
-            className="shadow-2xl rounded-none w-[210mm] min-h-[297mm] p-12"
-            style={{ 
-              backgroundColor: designSettings.backgroundColor,
-              fontFamily: designSettings.bodyFont 
-            }}
-          >
-            {designSettings.includeWarning && designSettings.warningPosition === 'top' && (
-              <div className="mb-8 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-xs text-orange-800 leading-relaxed flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span><strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness, especially if you have certain medical conditions.</span>
-                </p>
-              </div>
-            )}
-
-            <div className="text-center mb-12 border-b-2 pb-8" style={{ borderColor: designSettings.primaryColor }}>
-              <h1
-                className="font-bold mb-2"
-                style={{
-                  fontFamily: designSettings.titleFont,
-                  fontSize: `${designSettings.titleSize}px`,
-                  color: designSettings.primaryColor
-                }}
-              >
-                {menu?.title || 'Untitled Menu'}
-              </h1>
-              <p style={{ fontSize: `${designSettings.subtitleSize}px`, color: designSettings.secondaryColor }}>
-                A curated selection
-              </p>
-            </div>
-
-            {Object.keys(groupedItems).length === 0 ? (
-              <div className="text-center py-20 text-neutral-400">
-                <p>No items yet. Add your first menu item to get started.</p>
-              </div>
+          
+          <div className="flex-1 overflow-y-auto p-2">
+            {(menu?.items || []).length === 0 ? (
+              <p className="text-xs text-neutral-400 text-center py-8">No items yet</p>
             ) : (
-              <div className={spacingClass}>
-                {Object.entries(groupedItems).map(([category, items]) => (
-                  <div key={category}>
-                    <h2
-                      className="font-bold mb-6 border-b pb-2"
-                      style={{
-                        fontFamily: designSettings.titleFont,
-                        fontSize: `${designSettings.itemNameSize + 8}px`,
-                        color: designSettings.primaryColor,
-                        borderColor: designSettings.secondaryColor
-                      }}
-                    >
-                      {category}
-                    </h2>
-                    <div className="space-y-6">
-                      {items.map((item) => (
-                        <div key={item.id} className="flex justify-between items-start gap-4">
-                          <div className="flex-1">
-                            <h3
-                              className="font-semibold mb-2"
-                              style={{
-                                fontFamily: designSettings.titleFont,
-                                fontSize: `${designSettings.itemNameSize}px`,
-                                color: designSettings.primaryColor
-                              }}
-                            >
-                              {item.name}
-                            </h3>
-                            {item.description && (
-                              <p
-                                className="leading-relaxed"
-                                style={{
-                                  fontSize: `${designSettings.descriptionSize}px`,
-                                  color: designSettings.secondaryColor
-                                }}
-                              >
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                          <div
-                            className="font-bold whitespace-nowrap"
-                            style={{
-                              fontFamily: designSettings.titleFont,
-                              fontSize: `${designSettings.priceSize}px`,
-                              color: designSettings.accentColor
-                            }}
-                          >
-                            ${item.price}
-                          </div>
-                        </div>
-                      ))}
+              <div className="space-y-1">
+                {(menu?.items || []).map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleEditItem(item)}
+                    className="p-2 rounded-lg hover:bg-neutral-50 cursor-pointer group flex justify-between items-center"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-neutral-900 truncate">{item.name}</p>
+                      <p className="text-xs text-neutral-500">${item.price}</p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteItem(item.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 h-auto hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
 
-            {designSettings.includeWarning && designSettings.warningPosition === 'bottom' && (
-              <div className="mt-12 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-xs text-orange-800 leading-relaxed flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span><strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness, especially if you have certain medical conditions.</span>
+        {/* Center - Preview */}
+        <div className="flex-1 overflow-auto p-8 bg-neutral-100">
+          <div className="max-w-4xl mx-auto">
+            <div
+              id="menu-preview"
+              className="shadow-2xl bg-white"
+              style={{
+                width: designSettings.pageWidth,
+                minHeight: designSettings.pageHeight,
+                padding: `${designSettings.paddingTop}px ${designSettings.paddingSides}px ${designSettings.paddingBottom}px`,
+                backgroundColor: designSettings.backgroundColor,
+                border: designSettings.pageBorder ? `${designSettings.pageBorderWidth}px solid ${designSettings.pageBorderColor}` : 'none'
+              }}
+            >
+              {/* Title Section */}
+              <div
+                className="mb-12"
+                style={{
+                  textAlign: designSettings.titleAlign,
+                  borderBottom: designSettings.titleBorderBottom ? `${designSettings.titleBorderWidth}px ${designSettings.titleBorderStyle} ${designSettings.titleBorderColor}` : 'none',
+                  paddingBottom: designSettings.titleBorderBottom ? '24px' : '0'
+                }}
+              >
+                <h1
+                  style={{
+                    fontFamily: designSettings.titleFont,
+                    fontSize: `${designSettings.titleSize}px`,
+                    color: designSettings.titleColor,
+                    fontWeight: 'bold',
+                    marginBottom: '8px',
+                    textTransform: designSettings.titleUppercase ? 'uppercase' : 'none',
+                    letterSpacing: designSettings.titleUppercase ? '2px' : 'normal'
+                  }}
+                >
+                  {menu?.title || 'Untitled Menu'}
+                </h1>
+                <p
+                  style={{
+                    fontFamily: designSettings.bodyFont,
+                    fontSize: `${designSettings.subtitleSize}px`,
+                    color: designSettings.descriptionColor
+                  }}
+                >
+                  A curated selection
                 </p>
               </div>
-            )}
+
+              {/* Warning Top */}
+              {designSettings.includeWarning && designSettings.warningPosition === 'top' && (
+                <div className="mb-8 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p style={{ fontSize: `${designSettings.warningSize}px` }} className="text-orange-800 leading-relaxed">
+                    <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                  </p>
+                </div>
+              )}
+
+              {/* Menu Items */}
+              {Object.keys(groupedItems).length === 0 ? (
+                <div className="text-center py-20 text-neutral-400">
+                  <p>Add items to see your menu preview</p>
+                </div>
+              ) : (
+                <div style={{ marginTop: `${designSettings.categorySpacing}px` }}>
+                  {Object.entries(groupedItems).map(([category, items], catIndex) => (
+                    <div
+                      key={category}
+                      style={{
+                        marginBottom: catIndex < Object.keys(groupedItems).length - 1 ? `${designSettings.categorySpacing}px` : '0'
+                      }}
+                    >
+                      <h2
+                        style={{
+                          fontFamily: designSettings.titleFont,
+                          fontSize: `${designSettings.categorySize}px`,
+                          color: designSettings.categoryColor,
+                          fontWeight: 'bold',
+                          marginBottom: `${designSettings.itemSpacing}px`,
+                          textAlign: designSettings.categoryAlign,
+                          textTransform: designSettings.categoryUppercase ? 'uppercase' : 'none',
+                          letterSpacing: designSettings.categoryUppercase ? '1px' : 'normal',
+                          borderBottom: designSettings.categoryBorderBottom ? `${designSettings.categoryBorderWidth}px ${designSettings.categoryBorderStyle} ${designSettings.categoryBorderColor}` : 'none',
+                          paddingBottom: designSettings.categoryBorderBottom ? '12px' : '0'
+                        }}
+                      >
+                        {category}
+                      </h2>
+                      <div>
+                        {items.map((item, itemIndex) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              marginBottom: itemIndex < items.length - 1 ? `${designSettings.itemSpacing}px` : '0',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              gap: '16px'
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <h3
+                                style={{
+                                  fontFamily: designSettings.bodyFont,
+                                  fontSize: `${designSettings.itemNameSize}px`,
+                                  color: designSettings.itemNameColor,
+                                  fontWeight: designSettings.itemNameBold ? 'bold' : 'normal',
+                                  marginBottom: item.description ? '8px' : '0'
+                                }}
+                              >
+                                {item.name}
+                              </h3>
+                              {item.description && (
+                                <p
+                                  style={{
+                                    fontFamily: designSettings.bodyFont,
+                                    fontSize: `${designSettings.descriptionSize}px`,
+                                    color: designSettings.descriptionColor,
+                                    lineHeight: '1.6'
+                                  }}
+                                >
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: designSettings.priceFont,
+                                fontSize: `${designSettings.priceSize}px`,
+                                color: designSettings.priceColor,
+                                fontWeight: 'bold',
+                                flexShrink: 0
+                              }}
+                            >
+                              ${item.price}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Warning Bottom */}
+              {designSettings.includeWarning && designSettings.warningPosition === 'bottom' && (
+                <div className="mt-12 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p style={{ fontSize: `${designSettings.warningSize}px` }} className="text-orange-800 leading-relaxed">
+                    <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Sidebar - Design Controls */}
+        <div className="w-80 bg-white border-l border-neutral-200 overflow-y-auto">
+          <div className="p-4">
+            <h3 className="font-semibold text-sm text-neutral-700 mb-4 flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Design Settings
+            </h3>
+
+            {/* Quick Presets */}
+            <div className="mb-6">
+              <Label className="text-xs font-medium text-neutral-600 mb-2 block">Quick Presets</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button onClick={() => applyPreset('classic')} size="sm" variant="outline" className="text-xs">Classic</Button>
+                <Button onClick={() => applyPreset('modern')} size="sm" variant="outline" className="text-xs">Modern</Button>
+                <Button onClick={() => applyPreset('elegant')} size="sm" variant="outline" className="text-xs">Elegant</Button>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Design Tabs */}
+            <div className="space-y-6">
+              {/* Typography Section */}
+              <div>
+                <h4 className="font-medium text-sm text-neutral-800 mb-3">Typography</h4>
+                
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Title Font</Label>
+                    <Select value={designSettings.titleFont} onValueChange={(v) => setDesignSettings({ ...designSettings, titleFont: v })}>
+                      <SelectTrigger className="h-8 text-xs mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Body Font</Label>
+                    <Select value={designSettings.bodyFont} onValueChange={(v) => setDesignSettings({ ...designSettings, bodyFont: v })}>
+                      <SelectTrigger className="h-8 text-xs mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {FONTS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Title Size: {designSettings.titleSize}px</Label>
+                    <Slider
+                      value={[designSettings.titleSize]}
+                      onValueChange={(v) => setDesignSettings({ ...designSettings, titleSize: v[0] })}
+                      min={24}
+                      max={72}
+                      step={2}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Item Name Size: {designSettings.itemNameSize}px</Label>
+                    <Slider
+                      value={[designSettings.itemNameSize]}
+                      onValueChange={(v) => setDesignSettings({ ...designSettings, itemNameSize: v[0] })}
+                      min={14}
+                      max={32}
+                      step={1}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Description Size: {designSettings.descriptionSize}px</Label>
+                    <Slider
+                      value={[designSettings.descriptionSize]}
+                      onValueChange={(v) => setDesignSettings({ ...designSettings, descriptionSize: v[0] })}
+                      min={10}
+                      max={20}
+                      step={1}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Colors Section */}
+              <div>
+                <h4 className="font-medium text-sm text-neutral-800 mb-3">Colors</h4>
+                
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Title</Label>
+                      <Input
+                        type="color"
+                        value={designSettings.titleColor}
+                        onChange={(e) => setDesignSettings({ ...designSettings, titleColor: e.target.value })}
+                        className="h-8 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Price</Label>
+                      <Input
+                        type="color"
+                        value={designSettings.priceColor}
+                        onChange={(e) => setDesignSettings({ ...designSettings, priceColor: e.target.value })}
+                        className="h-8 mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Background</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {BACKGROUNDS.map(bg => (
+                        <button
+                          key={bg.value}
+                          onClick={() => setDesignSettings({ ...designSettings, backgroundColor: bg.value })}
+                          className="h-8 rounded border-2 hover:border-neutral-400 transition-colors"
+                          style={{
+                            backgroundColor: bg.value,
+                            borderColor: designSettings.backgroundColor === bg.value ? '#1a1a1a' : '#e5e5e5'
+                          }}
+                          title={bg.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Spacing Section */}
+              <div>
+                <h4 className="font-medium text-sm text-neutral-800 mb-3">Spacing</h4>
+                
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Page Padding: {designSettings.paddingSides}px</Label>
+                    <Slider
+                      value={[designSettings.paddingSides]}
+                      onValueChange={(v) => setDesignSettings({
+                        ...designSettings,
+                        paddingSides: v[0],
+                        paddingTop: v[0],
+                        paddingBottom: v[0]
+                      })}
+                      min={20}
+                      max={80}
+                      step={4}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Item Spacing: {designSettings.itemSpacing}px</Label>
+                    <Slider
+                      value={[designSettings.itemSpacing]}
+                      onValueChange={(v) => setDesignSettings({ ...designSettings, itemSpacing: v[0] })}
+                      min={8}
+                      max={48}
+                      step={4}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Borders Section */}
+              <div>
+                <h4 className="font-medium text-sm text-neutral-800 mb-3">Borders</h4>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Title Border</Label>
+                    <Switch
+                      checked={designSettings.titleBorderBottom}
+                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, titleBorderBottom: v })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Category Border</Label>
+                    <Switch
+                      checked={designSettings.categoryBorderBottom}
+                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, categoryBorderBottom: v })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Page Border</Label>
+                    <Switch
+                      checked={designSettings.pageBorder}
+                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, pageBorder: v })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Warning Section */}
+              <div>
+                <h4 className="font-medium text-sm text-neutral-800 mb-3">Food Safety Warning</h4>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Include Warning</Label>
+                    <Switch
+                      checked={designSettings.includeWarning}
+                      onCheckedChange={(v) => setDesignSettings({ ...designSettings, includeWarning: v })}
+                    />
+                  </div>
+
+                  {designSettings.includeWarning && (
+                    <div>
+                      <Label className="text-xs">Position</Label>
+                      <Select
+                        value={designSettings.warningPosition}
+                        onValueChange={(v) => setDesignSettings({ ...designSettings, warningPosition: v })}
+                      >
+                        <SelectTrigger className="h-8 text-xs mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top">Top</SelectItem>
+                          <SelectItem value="bottom">Bottom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Item Dialog */}
+      {/* Item Edit Dialog */}
       <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
-        <DialogContent className="max-w-2xl" data-testid="item-dialog">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-playfair text-2xl">
               {editingItem ? 'Edit Item' : 'Add New Item'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="item-name">Dish Name *</Label>
               <Input
                 id="item-name"
-                data-testid="item-name-input"
                 value={itemForm.name}
                 onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
                 placeholder="e.g., Grilled Salmon"
+                className="mt-1"
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
+            <div>
+              <div className="flex justify-between items-center mb-1">
                 <Label htmlFor="item-description">Description</Label>
                 <Button
                   type="button"
@@ -612,44 +827,42 @@ export default function Editor() {
                   variant="outline"
                   onClick={handleGenerateDescription}
                   disabled={generatingAI}
-                  data-testid="generate-ai-button"
-                  className="rounded-full"
+                  className="h-7 text-xs"
                 >
-                  <Wand2 className="w-3 h-3 mr-2" />
+                  <Wand2 className="w-3 h-3 mr-1" />
                   {generatingAI ? 'Generating...' : 'AI Generate'}
                 </Button>
               </div>
               <Textarea
                 id="item-description"
-                data-testid="item-description-input"
                 value={itemForm.description}
                 onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
                 placeholder="Describe this delicious dish..."
-                rows={4}
+                rows={3}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="item-price">Price *</Label>
                 <Input
                   id="item-price"
-                  data-testid="item-price-input"
                   value={itemForm.price}
                   onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
                   placeholder="12.99"
                   type="number"
                   step="0.01"
+                  className="mt-1"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="item-category">Category</Label>
                 <Select
                   value={itemForm.category}
                   onValueChange={(value) => setItemForm({ ...itemForm, category: value })}
                 >
-                  <SelectTrigger data-testid="item-category-select">
+                  <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -665,19 +878,9 @@ export default function Editor() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowItemDialog(false)}
-                data-testid="cancel-item-button"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveItem}
-                data-testid="save-item-button"
-                className="bg-charcoal text-white hover:bg-neutral-800"
-              >
-                {editingItem ? 'Update Item' : 'Add Item'}
+              <Button variant="outline" onClick={() => setShowItemDialog(false)}>Cancel</Button>
+              <Button onClick={handleSaveItem} className="bg-charcoal text-white hover:bg-neutral-800">
+                {editingItem ? 'Update' : 'Add Item'}
               </Button>
             </div>
           </div>
