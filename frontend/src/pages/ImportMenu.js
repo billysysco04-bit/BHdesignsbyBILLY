@@ -95,7 +95,7 @@ export default function ImportMenu() {
   };
 
   return (
-    <div className=\"min-h-screen bg-paper grain\">
+    <div className="min-h-screen bg-paper grain">
       {/* Header */}
       <header className=\"border-b border-neutral-200 bg-white/80 backdrop-blur-md sticky top-0 z-50\">
         <div className=\"max-w-7xl mx-auto px-6 py-4 flex justify-between items-center\">
