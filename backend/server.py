@@ -398,13 +398,14 @@ async def generate_description(request: AIDescriptionRequest, user_id: str = Dep
         style_prompts = {
             "professional": "Write a professional, appetizing menu description.",
             "casual": "Write a casual, friendly menu description.",
-            "creative": "Write a creative, unique menu description with personality."
+            "creative": "Write a creative, unique menu description with personality.",
+            "chef": "You are a professional chef writing elegant, concise menu descriptions. Use culinary terminology, highlight cooking methods, and emphasize quality ingredients. Be sophisticated yet accessible. Keep it 1-2 short sentences maximum."
         }
         
-        system_message = f"{style_prompts.get(request.style, style_prompts['professional'])} Keep it concise (2-3 sentences max) and mouth-watering."
+        system_message = f"{style_prompts.get(request.style, style_prompts['chef'])} Focus on sensory appeal and authenticity."
         
-        ingredients_text = f" Ingredients: {request.ingredients}" if request.ingredients else ""
-        user_text = f"Create a menu description for: {request.dish_name}.{ingredients_text}"
+        ingredients_text = f" Key ingredients: {request.ingredients}" if request.ingredients else ""
+        user_text = f"Create a short, chef-inspired menu description for: {request.dish_name}.{ingredients_text}\n\nRequirements:\n- Maximum 20 words\n- Use culinary terms\n- Highlight cooking method or key ingredient\n- Make it mouth-watering\n- No generic phrases"
         
         chat = LlmChat(
             api_key=api_key,
