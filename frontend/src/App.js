@@ -16,16 +16,6 @@ import Admin from './pages/Admin';
 import ImportMenu from './pages/ImportMenu';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import '@/App.css';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import Landing from './pages/Landing';
-import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor';
-import Templates from './pages/Templates';
-import Admin from './pages/Admin';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import '@/App.css';
 
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
