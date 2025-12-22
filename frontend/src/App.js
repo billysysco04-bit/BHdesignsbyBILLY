@@ -1,3 +1,9 @@
+/**
+ * MenuMaker - Professional Menu Creation Platform
+ * Copyright (c) 2025 BHdesignsbyBILLY - Billy Harman
+ * All Rights Reserved.
+ */
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
