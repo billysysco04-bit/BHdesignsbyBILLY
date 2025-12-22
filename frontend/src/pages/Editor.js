@@ -217,6 +217,31 @@ export default function Editor() {
     }
   };
 
+  // Background image upload
+  const onBackgroundDrop = async (acceptedFiles) => {
+    if (acceptedFiles.length === 0) return;
+    
+    const file = acceptedFiles[0];
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setDesign({ ...design, backgroundImage: e.target.result });
+      toast.success('Background image uploaded!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const { getRootProps: getBackgroundProps, getInputProps: getBackgroundInputProps } = useDropzone({
+    onDrop: onBackgroundDrop,
+    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+    multiple: false,
+    maxSize: 5242880
+  });
+
   const groupedItems = (menu?.items || []).reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
