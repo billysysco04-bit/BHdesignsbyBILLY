@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Plus, FileText, Trash2, ChefHat, LogOut } from 'lucide-react';
+import { Plus, FileText, Trash2, ChefHat, LogOut, Upload } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
@@ -91,6 +91,15 @@ export default function Dashboard() {
             <p className="text-neutral-600">Manage and edit your menu creations</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              onClick={() => navigate('/import')}
+              data-testid="import-menu-button"
+              variant="outline"
+              className="border-terracotta text-terracotta hover:bg-terracotta/5 rounded-full"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import Menu
+            </Button>
             <Button
               onClick={() => navigate('/templates')}
               data-testid="browse-templates-button"
