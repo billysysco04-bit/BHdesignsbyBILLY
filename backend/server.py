@@ -115,18 +115,52 @@ class MenuItem(BaseModel):
 
 class MenuPageDesign(BaseModel):
     """Design settings for a single menu page"""
+    model_config = ConfigDict(extra="allow")  # Allow extra fields
     backgroundColor: str = "#ffffff"
     backgroundImage: str = ""
+    backgroundImageType: str = "none"
     backgroundOpacity: int = 100
     titleFont: str = "Playfair Display"
     titleSize: int = 52
     titleColor: str = "#1a1a1a"
+    titleAlign: str = "center"
+    subtitleFont: str = "DM Sans"
+    subtitleSize: int = 18
+    subtitleColor: str = "#666666"
     itemFont: str = "DM Sans"
+    itemNameSize: int = 20
+    itemNameColor: str = "#1a1a1a"
+    descriptionSize: int = 14
+    descriptionColor: str = "#666666"
+    priceFont: str = "Playfair Display"
+    priceSize: int = 20
+    priceColor: str = "#e07a5f"
+    categoryFont: str = "Playfair Display"
+    categorySize: int = 28
+    categoryColor: str = "#1a1a1a"
+    categoryUppercase: bool = True
+    # Layout settings
+    layout: str = "single-column"
+    pageSizeId: str = "letter"
+    pageWidth: int = 816
+    pageHeight: int = 1056
+    padding: int = 50
+    itemSpacing: int = 24
+    categorySpacing: int = 40
+    # Border settings
     menuBorderStyle: str = "none"
     menuBorderWidth: int = 2
     menuBorderColor: str = "#1a1a1a"
     decorativeBorder: str = "none"
     decorativeBorderColor: str = "#1a1a1a"
+    showTitleBorder: bool = True
+    titleBorderStyle: str = "solid"
+    titleBorderColor: str = "#1a1a1a"
+    showCategoryBorder: bool = True
+    categoryBorderStyle: str = "solid"
+    categoryBorderColor: str = "#cccccc"
+    showWarning: bool = True
+    warningPosition: str = "bottom"
 
 class MenuPage(BaseModel):
     """A single page in a multi-page menu"""
