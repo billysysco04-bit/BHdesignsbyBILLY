@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Multi-page menu support with background image import - fix regression where only single page was supported"
+user_problem_statement: "Fix three critical P0 issues: 1) AI descriptions not generating, 2) Image import broken, 3) Menu layout unprofessional"
 
 backend:
   - task: "Menu CRUD API with Pages Support"
