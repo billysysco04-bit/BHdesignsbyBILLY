@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-21T19:23:25.822685",
+  "timestamp": "2025-12-23T19:35:24.952086",
   "test_type": "full_api_suite_with_stripe",
   "summary": {
     "tests_run": 17,
@@ -11,103 +11,103 @@
       "test": "Health Check",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.374955"
+      "timestamp": "2025-12-23T19:35:22.996701"
     },
     {
       "test": "Root Endpoint",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.413392"
+      "timestamp": "2025-12-23T19:35:23.039067"
     },
     {
       "test": "User Registration",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.694041"
+      "timestamp": "2025-12-23T19:35:23.340891"
     },
     {
       "test": "Get Current User",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.735066"
+      "timestamp": "2025-12-23T19:35:23.382087"
     },
     {
       "test": "Get Credit Packages",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.778544"
+      "timestamp": "2025-12-23T19:35:23.422342"
     },
     {
       "test": "Credit Package Validation",
       "success": true,
       "details": "Found 3 packages with correct structure",
-      "timestamp": "2025-12-21T19:23:24.779082"
+      "timestamp": "2025-12-23T19:35:23.422952"
     },
     {
       "test": "Get Subscription Plans",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.815460"
+      "timestamp": "2025-12-23T19:35:23.461586"
     },
     {
       "test": "Subscription Plan Validation",
       "success": true,
       "details": "Found 3 plans with correct structure",
-      "timestamp": "2025-12-21T19:23:24.816083"
+      "timestamp": "2025-12-23T19:35:23.462260"
     },
     {
       "test": "Get User Menus",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:24.857582"
+      "timestamp": "2025-12-23T19:35:23.510486"
     },
     {
       "test": "Credit Checkout Session",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:25.263804"
+      "timestamp": "2025-12-23T19:35:24.376845"
     },
     {
       "test": "Credit Checkout URL Validation",
       "success": true,
       "details": "Valid Stripe checkout URL",
-      "timestamp": "2025-12-21T19:23:25.264437"
+      "timestamp": "2025-12-23T19:35:24.377530"
     },
     {
       "test": "Subscription Checkout Session",
       "success": true,
       "details": "Status: 200",
-      "timestamp": "2025-12-21T19:23:25.670106"
+      "timestamp": "2025-12-23T19:35:24.807198"
     },
     {
       "test": "Subscription Checkout URL Validation",
       "success": true,
       "details": "Valid Stripe checkout URL",
-      "timestamp": "2025-12-21T19:23:25.670765"
+      "timestamp": "2025-12-23T19:35:24.807819"
     },
     {
       "test": "Invalid Package Checkout",
       "success": true,
       "details": "Status: 400",
-      "timestamp": "2025-12-21T19:23:25.707929"
+      "timestamp": "2025-12-23T19:35:24.843174"
     },
     {
       "test": "Invalid Plan Checkout",
       "success": true,
       "details": "Status: 400",
-      "timestamp": "2025-12-21T19:23:25.747252"
+      "timestamp": "2025-12-23T19:35:24.879546"
     },
     {
       "test": "Invalid Endpoint",
       "success": true,
       "details": "Status: 404",
-      "timestamp": "2025-12-21T19:23:25.781391"
+      "timestamp": "2025-12-23T19:35:24.917437"
     },
     {
       "test": "Unauthorized Access",
       "success": false,
       "details": "Status: 403 (expected 401) - Not authenticated",
-      "timestamp": "2025-12-21T19:23:25.821961"
+      "timestamp": "2025-12-23T19:35:24.951185"
     }
   ]
 }
