@@ -833,6 +833,59 @@ export default function Editor() {
 
               {/* STYLE TAB */}
               <TabsContent value="style" className="p-4 space-y-4 mt-0">
+                {/* Page Size Selection */}
+                <div className="bg-neutral-700/50 p-4 rounded-xl space-y-4">
+                  <h4 className="text-white font-semibold text-sm flex items-center gap-2">
+                    <LayoutIcon className="w-4 h-4 text-emerald-500" />Page Size
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {PAGE_SIZES.map((size) => (
+                      <button
+                        key={size.id}
+                        onClick={() => updateCurrentPageDesign({ pageSizeId: size.id, pageWidth: size.width, pageHeight: size.height })}
+                        className={`p-2 rounded-lg border-2 transition-all text-center ${
+                          design.pageSizeId === size.id
+                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                            : 'border-neutral-600 bg-neutral-700 text-neutral-300 hover:border-neutral-500'
+                        }`}
+                      >
+                        <span className="text-xs font-medium block">{size.name}</span>
+                        <span className="text-[10px] opacity-70">{size.label}</span>
+                        {design.pageSizeId === size.id && (
+                          <Check className="w-3 h-3 mx-auto mt-1" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Layout Selection */}
+                <div className="bg-neutral-700/50 p-4 rounded-xl space-y-4">
+                  <h4 className="text-white font-semibold text-sm flex items-center gap-2">
+                    <LayoutIcon className="w-4 h-4 text-emerald-500" />Layout Style
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {LAYOUTS.map((layout) => (
+                      <button
+                        key={layout.id}
+                        onClick={() => updateCurrentPageDesign({ layout: layout.id })}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          design.layout === layout.id
+                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                            : 'border-neutral-600 bg-neutral-700 text-neutral-300 hover:border-neutral-500'
+                        }`}
+                      >
+                        <span className="text-xl block mb-1">{layout.icon}</span>
+                        <span className="text-[10px] font-medium">{layout.name}</span>
+                        {design.layout === layout.id && (
+                          <Check className="w-3 h-3 mx-auto mt-1" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Colors */}
                 <div className="bg-neutral-700/50 p-4 rounded-xl space-y-4">
                   <h4 className="text-white font-semibold text-sm flex items-center gap-2">
                     <Palette className="w-4 h-4 text-emerald-500" />Colors
@@ -842,15 +895,14 @@ export default function Editor() {
                   <ColorPickerWithPresets label="Description Color" value={design.descriptionColor} onChange={(v) => updateCurrentPageDesign({ descriptionColor: v })} presets={COLOR_PRESETS.title} />
                 </div>
 
+                {/* Spacing */}
                 <div className="bg-neutral-700/50 p-4 rounded-xl space-y-4">
-                  <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-                    <LayoutIcon className="w-4 h-4 text-emerald-500" />Layout & Spacing
-                  </h4>
-                  <SizeSlider label="Page Width" value={design.pageWidth} onChange={(v) => updateCurrentPageDesign({ pageWidth: v })} min={600} max={1000} />
+                  <h4 className="text-white font-semibold text-sm">Spacing</h4>
                   <SizeSlider label="Page Padding" value={design.padding} onChange={(v) => updateCurrentPageDesign({ padding: v })} min={20} max={100} />
                   <SizeSlider label="Item Spacing" value={design.itemSpacing} onChange={(v) => updateCurrentPageDesign({ itemSpacing: v })} min={12} max={48} />
                 </div>
 
+                {/* Food Safety Warning */}
                 <div className="bg-neutral-700/50 p-4 rounded-xl space-y-4">
                   <h4 className="text-white font-semibold text-sm">Food Safety Warning</h4>
                   <div className="flex items-center justify-between">
