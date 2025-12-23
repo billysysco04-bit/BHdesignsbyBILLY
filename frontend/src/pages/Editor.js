@@ -115,10 +115,15 @@ const DEFAULT_PAGE_DESIGN = {
   backgroundImage: '',
   backgroundImageType: 'none',
   backgroundOpacity: 100,
-  pageWidth: 800,
+  // Layout & Page Size
+  layout: 'single-column',
+  pageSizeId: 'letter',
+  pageWidth: 816,
+  pageHeight: 1056,
   padding: 50,
   itemSpacing: 24,
   categorySpacing: 40,
+  // Borders
   menuBorderStyle: 'none',
   menuBorderWidth: 2,
   menuBorderColor: '#1a1a1a',
