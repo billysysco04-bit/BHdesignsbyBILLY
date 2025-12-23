@@ -102,20 +102,32 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Fix the Menu Editor UI/UX issues - add custom background image upload, decorative borders, and clear visual feedback for all selections"
+user_problem_statement: "Multi-page menu support with background image import - fix regression where only single page was supported"
 
 backend:
-  - task: "Menu CRUD API"
+  - task: "Menu CRUD API with Pages Support"
     implemented: true
     working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
-        comment: "Existing functionality - not modified"
+        comment: "Added MenuPage and MenuPageDesign models, updated Menu model to support pages array, modified PDF extraction to return page-by-page data"
+
+  - task: "Multi-page PDF Import"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Modified extract_text_from_pdf to return page-by-page data, updated upload endpoint to parse items per page"
 
   - task: "AI Description Generation"
     implemented: true
@@ -130,113 +142,80 @@ backend:
         comment: "Existing functionality - not modified"
 
 frontend:
+  - task: "Menu Editor - Multi-Page Navigation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added page tabs, page navigation arrows, add/duplicate/delete page buttons. Each page has independent items and design settings."
+
+  - task: "Menu Editor - Per-Page Design Settings"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Each page stores its own design including background, colors, fonts, borders. Design changes apply to current page only."
+
   - task: "Menu Editor - Background Image Upload"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Verified - drag-drop upload works, preset backgrounds work, opacity slider works"
+      - working: true
+        agent: "testing"
+        comment: "Confirmed working in previous test iteration"
+
+  - task: "Import Menu - Multi-Page Display"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/ImportMenu.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Implemented custom background image upload with drag-drop, preview with checkmark when selected, ability to remove custom background"
+        comment: "Added page tabs to review extracted items per page, shows total pages count, creates multi-page menu on submit"
 
-  - task: "Menu Editor - Preset Backgrounds"
+  - task: "Menu Editor - Borders (Simple + Decorative)"
     implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/Editor.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Implemented 6 preset backgrounds (None, Elegant Texture, Wood Grain, Marble, Linen, Dark Slate) with thumbnail previews and clear checkmark selection"
-
-  - task: "Menu Editor - Simple Border Styles"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/Editor.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Implemented 5 simple border styles (None, Solid, Dashed, Dotted, Double) with width and color customization"
-
-  - task: "Menu Editor - Decorative Borders"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/Editor.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Implemented 7 decorative frame styles (None, Elegant, Ornate, Classic, Floral, Art Deco, Vintage) with corner symbols and color customization"
-
-  - task: "Menu Editor - Color Picker with Selection Feedback"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/Editor.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Implemented color pickers with preset color swatches showing checkmarks on selected colors, plus HEX input for custom colors"
-
-  - task: "Menu Editor - Font Selection with Preview"
-    implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/Editor.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Implemented font dropdowns that display fonts in their actual style, with font type labels (serif/sans-serif)"
+        comment: "Verified in previous iteration"
 
-  - task: "Menu Editor - Size Sliders with Value Display"
+  - task: "Menu Editor - Color Selection Feedback"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/Editor.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "Implemented sliders for sizes with clear value display badges showing current px/% values"
-
-  - task: "Menu Editor - Section Dividers"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/Editor.js"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Implemented title and category dividers with toggles and style options (solid, dashed, dotted, double)"
-
-  - task: "Menu Editor - Add/Edit Item Dialog"
-    implemented: true
-    working: "NA"
-    file: "/app/frontend/src/pages/Editor.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Clean dialog for adding/editing menu items with AI description generation button"
+        comment: "Verified in previous iteration"
 
 metadata:
   created_by: "main_agent"
