@@ -25,38 +25,68 @@ export default function ImportMenu() {
   const onDrop = async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
 
-    const file = acceptedFiles[0];
-    
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+    // Check total size
+    const totalSize = acceptedFiles.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > 20 * 1024 * 1024) {
+      toast.error('Total file size must be less than 20MB');
       return;
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    let allItems = [];
+    let allPages = [];
+    let totalPagesCount = 0;
 
     try {
-      const response = await axios.post(`${API_URL}/import/upload`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Process each file
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
+        toast.info(`Processing file ${i + 1} of ${acceptedFiles.length}: ${file.name}`);
+        
+        const formData = new FormData();
+        formData.append('file', file);
 
-      setExtractedItems(response.data.items);
-      setExtractedText(response.data.extracted_text);
-      setExtractedPages(response.data.pages || []);
-      setTotalPages(response.data.total_pages || 1);
+        const response = await axios.post(`${API_URL}/import/upload`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        // Add items from this file
+        allItems = [...allItems, ...response.data.items];
+        
+        // Add pages from this file
+        if (response.data.pages && response.data.pages.length > 0) {
+          response.data.pages.forEach((page, pageIdx) => {
+            allPages.push({
+              ...page,
+              page_number: totalPagesCount + pageIdx + 1,
+              source_file: file.name
+            });
+          });
+          totalPagesCount += response.data.pages.length;
+        } else {
+          // Single page file
+          allPages.push({
+            page_number: totalPagesCount + 1,
+            text: response.data.extracted_text,
+            items: response.data.items,
+            source_file: file.name
+          });
+          totalPagesCount += 1;
+        }
+      }
+
+      setExtractedItems(allItems);
+      setExtractedPages(allPages);
+      setTotalPages(totalPagesCount);
       setCurrentPagePreview(0);
       setStep(2);
       
-      const pageInfo = response.data.total_pages > 1 
-        ? ` from ${response.data.total_pages} pages` 
-        : '';
-      toast.success(`Successfully extracted ${response.data.items_found} items${pageInfo}!`);
+      toast.success(`Extracted ${allItems.length} items from ${acceptedFiles.length} file(s) (${totalPagesCount} total pages)!`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to process file');
+      toast.error(error.response?.data?.detail || 'Failed to process file(s)');
     } finally {
       setUploading(false);
     }
