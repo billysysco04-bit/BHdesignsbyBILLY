@@ -140,6 +140,187 @@ const DEFAULT_PAGE_DESIGN = {
 };
 
 // ============= HELPER COMPONENTS =============
+
+// Professional print-ready menu layout component
+const MenuItemsLayout = ({ groupedItems, design, layoutConfig }) => {
+  const categories = Object.entries(groupedItems);
+  const columns = layoutConfig?.columns || 1;
+  const isCentered = layoutConfig?.centered || design.layout === 'centered';
+  const isGrid = layoutConfig?.grid;
+  
+  // For single column or centered - use simple linear layout
+  if (columns === 1 || isCentered) {
+    return (
+      <div style={{ maxWidth: isCentered ? '600px' : '100%', margin: isCentered ? '0 auto' : '0' }}>
+        {categories.map(([category, items]) => (
+          <CategoryBlock 
+            key={category} 
+            category={category} 
+            items={items} 
+            design={design} 
+            isCentered={isCentered}
+          />
+        ))}
+      </div>
+    );
+  }
+  
+  // For multi-column layouts - use CSS Grid for balanced distribution
+  // Distribute categories evenly across columns
+  const columnArrays = Array.from({ length: columns }, () => []);
+  
+  // Simple round-robin distribution for balanced columns
+  categories.forEach((categoryData, index) => {
+    columnArrays[index % columns].push(categoryData);
+  });
+  
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(${columns}, 1fr)`,
+      gap: '40px',
+      alignItems: 'start'
+    }}>
+      {columnArrays.map((columnCategories, colIdx) => (
+        <div 
+          key={colIdx} 
+          style={{ 
+            paddingLeft: colIdx > 0 ? '20px' : '0',
+            borderLeft: colIdx > 0 ? '1px solid #e5e5e5' : 'none'
+          }}
+        >
+          {columnCategories.map(([category, items]) => (
+            <CategoryBlock 
+              key={category} 
+              category={category} 
+              items={items} 
+              design={design}
+              compact={columns >= 3}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Category block component with header and items
+const CategoryBlock = ({ category, items, design, isCentered = false, compact = false }) => (
+  <div style={{ 
+    marginBottom: `${design.categorySpacing}px`,
+    breakInside: 'avoid',
+    pageBreakInside: 'avoid'
+  }}>
+    {/* Category Header */}
+    <div style={{
+      textAlign: isCentered ? 'center' : 'left',
+      marginBottom: `${Math.max(12, design.itemSpacing - 8)}px`,
+      borderBottom: design.showCategoryBorder ? `1px ${design.categoryBorderStyle} ${design.categoryBorderColor}` : 'none',
+      paddingBottom: design.showCategoryBorder ? '12px' : '0'
+    }}>
+      <h2 style={{
+        fontFamily: design.categoryFont,
+        fontSize: compact ? `${Math.max(16, design.categorySize - 6)}px` : `${design.categorySize}px`,
+        color: design.categoryColor,
+        fontWeight: '700',
+        textTransform: design.categoryUppercase ? 'uppercase' : 'none',
+        letterSpacing: design.categoryUppercase ? '2px' : 'normal',
+        margin: 0,
+        lineHeight: 1.2
+      }}>
+        {category}
+      </h2>
+    </div>
+    
+    {/* Menu Items */}
+    {items.map((item, itemIdx) => (
+      <MenuItemBlock 
+        key={item.id} 
+        item={item} 
+        design={design} 
+        isLast={itemIdx === items.length - 1}
+        isCentered={isCentered}
+        compact={compact}
+      />
+    ))}
+  </div>
+);
+
+// Individual menu item component
+const MenuItemBlock = ({ item, design, isLast, isCentered = false, compact = false }) => (
+  <div style={{ 
+    marginBottom: isLast ? '0' : `${design.itemSpacing}px`,
+    breakInside: 'avoid',
+    pageBreakInside: 'avoid'
+  }}>
+    {/* Item Name and Price Row */}
+    <div style={{
+      display: 'flex',
+      justifyContent: isCentered ? 'center' : 'space-between',
+      alignItems: 'baseline',
+      gap: '12px',
+      flexDirection: isCentered ? 'column' : 'row',
+      textAlign: isCentered ? 'center' : 'left'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'baseline', 
+        gap: '8px',
+        flex: isCentered ? 'none' : 1,
+        minWidth: 0
+      }}>
+        <h3 style={{ 
+          fontFamily: design.itemFont, 
+          fontSize: compact ? `${Math.max(14, design.itemNameSize - 4)}px` : `${design.itemNameSize}px`, 
+          color: design.itemNameColor, 
+          fontWeight: '600',
+          margin: 0,
+          lineHeight: '1.4'
+        }}>
+          {item.name}
+        </h3>
+        {/* Dot leader line - professional look */}
+        {!isCentered && design.layout === 'single-column' && (
+          <span style={{
+            flex: 1,
+            borderBottom: '1px dotted #bbb',
+            marginBottom: '5px',
+            minWidth: '24px'
+          }} />
+        )}
+      </div>
+      <span style={{ 
+        fontFamily: design.priceFont, 
+        fontSize: compact ? `${Math.max(14, design.priceSize - 4)}px` : `${design.priceSize}px`, 
+        color: design.priceColor, 
+        fontWeight: '700',
+        whiteSpace: 'nowrap',
+        flexShrink: 0
+      }}>
+        ${item.price}
+      </span>
+    </div>
+    
+    {/* Description */}
+    {item.description && (
+      <p style={{ 
+        fontFamily: design.itemFont, 
+        fontSize: compact ? `${Math.max(11, design.descriptionSize - 2)}px` : `${design.descriptionSize}px`, 
+        color: design.descriptionColor, 
+        lineHeight: '1.5',
+        margin: '6px 0 0 0',
+        fontStyle: 'italic',
+        textAlign: isCentered ? 'center' : 'left',
+        maxWidth: isCentered ? '400px' : '100%',
+        marginLeft: isCentered ? 'auto' : '0',
+        marginRight: isCentered ? 'auto' : '0'
+      }}>
+        {item.description}
+      </p>
+    )}
+  </div>
+);
+
 const ColorPickerWithPresets = ({ label, value, onChange, presets }) => (
   <div className="space-y-2">
     <Label className="text-neutral-300 text-xs font-medium">{label}</Label>
