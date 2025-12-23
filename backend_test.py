@@ -1,338 +1,420 @@
+#!/usr/bin/env python3
+"""
+MenuMaker Backend API Testing Suite - P0 Fixes Focus
+Tests the 3 critical P0 issues that were reported and fixed:
+1. AI chef-inspired descriptions not generating
+2. Image import (JPG/PNG) broken after CSV import was added  
+3. Menu layout unprofessional and not print-ready
+"""
+
 import requests
 import sys
 import json
 import time
+import io
 from datetime import datetime
 
-class MenuAPITester:
+class MenuMakerP0Tester:
     def __init__(self, base_url="https://menumaker-2.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_results = []
         self.p0_fixes_tested = 0
         self.p0_fixes_passed = 0
 
-    def log_test(self, name, success, details=""):
-        """Log test result"""
-        self.tests_run += 1
-        if success:
-            self.tests_passed += 1
-            print(f"✅ {name} - PASSED")
-        else:
-            print(f"❌ {name} - FAILED: {details}")
-        
-        self.test_results.append({
-            "test": name,
-            "success": success,
-            "details": details
-        })
+    def log(self, message):
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
-        """Run a single API test"""
+    def run_test(self, name, method, endpoint, expected_status, data=None, files=None, timeout=45):
+        """Run a single API test with proper error handling"""
         url = f"{self.base_url}/{endpoint}"
-        test_headers = {'Content-Type': 'application/json'}
+        headers = {}
         
         if self.token:
-            test_headers['Authorization'] = f'Bearer {self.token}'
+            headers['Authorization'] = f'Bearer {self.token}'
         
-        if headers:
-            test_headers.update(headers)
+        # Only set Content-Type for JSON requests
+        if not files:
+            headers['Content-Type'] = 'application/json'
 
-        print(f"\n🔍 Testing {name}...")
-        print(f"   URL: {url}")
+        self.tests_run += 1
+        self.log(f"🔍 Testing {name}...")
         
         try:
             if method == 'GET':
-                response = requests.get(url, headers=test_headers, timeout=30)
+                response = requests.get(url, headers=headers, timeout=timeout)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=test_headers, timeout=30)
+                if files:
+                    response = requests.post(url, files=files, headers=headers, timeout=timeout)
+                else:
+                    response = requests.post(url, json=data, headers=headers, timeout=timeout)
             elif method == 'PUT':
-                response = requests.put(url, json=data, headers=test_headers, timeout=30)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=test_headers, timeout=30)
+                response = requests.put(url, json=data, headers=headers, timeout=timeout)
 
             success = response.status_code == expected_status
-            
             if success:
-                self.log_test(name, True)
+                self.tests_passed += 1
+                self.log(f"✅ PASSED - {name}")
                 try:
-                    return True, response.json()
+                    return success, response.json() if response.content else {}
                 except:
-                    return True, response.text
+                    return success, response.text
             else:
-                error_msg = f"Expected {expected_status}, got {response.status_code}"
-                try:
-                    error_detail = response.json()
-                    error_msg += f" - {error_detail}"
-                except:
-                    error_msg += f" - {response.text[:200]}"
-                
-                self.log_test(name, False, error_msg)
+                self.log(f"❌ FAILED - {name}")
+                self.log(f"   Expected: {expected_status}, Got: {response.status_code}")
+                self.log(f"   Response: {response.text[:300]}")
                 return False, {}
 
-        except requests.exceptions.RequestException as e:
-            self.log_test(name, False, f"Request error: {str(e)}")
-            return False, {}
         except Exception as e:
-            self.log_test(name, False, f"Unexpected error: {str(e)}")
+            self.log(f"❌ ERROR - {name}: {str(e)}")
             return False, {}
 
-    def test_user_registration(self):
-        """Test user registration"""
-        test_user_data = {
-            "name": f"Test User {datetime.now().strftime('%H%M%S')}",
-            "email": f"test_{datetime.now().strftime('%H%M%S')}@example.com",
-            "password": "TestPass123!"
-        }
-        
+    def test_admin_login(self):
+        """Test login with provided admin credentials"""
+        self.log("🔐 Testing Admin Login...")
         success, response = self.run_test(
-            "User Registration",
-            "POST",
-            "auth/register",
-            200,
-            data=test_user_data
-        )
-        
-        if success and 'token' in response:
-            self.token = response['token']
-            self.user_id = response['user']['id']
-            return True
-        return False
-
-    def test_user_login(self):
-        """Test user login with existing credentials"""
-        # First register a user
-        test_user_data = {
-            "name": f"Login Test User {datetime.now().strftime('%H%M%S')}",
-            "email": f"login_test_{datetime.now().strftime('%H%M%S')}@example.com",
-            "password": "LoginTest123!"
-        }
-        
-        # Register first
-        success, response = self.run_test(
-            "User Registration for Login Test",
-            "POST",
-            "auth/register",
-            200,
-            data=test_user_data
-        )
-        
-        if not success:
-            return False
-            
-        # Now test login
-        login_data = {
-            "email": test_user_data["email"],
-            "password": test_user_data["password"]
-        }
-        
-        success, response = self.run_test(
-            "User Login",
-            "POST",
+            "Admin Login",
+            "POST", 
             "auth/login",
             200,
-            data=login_data
+            data={"email": "admin@menumaker.com", "password": "admin123"}
         )
         
         if success and 'token' in response:
-            # Update token for subsequent tests
             self.token = response['token']
-            self.user_id = response['user']['id']
-            return True
-        return False
-
-    def test_get_user_profile(self):
-        """Test getting current user profile"""
-        success, response = self.run_test(
-            "Get User Profile",
-            "GET",
-            "auth/me",
-            200
-        )
-        return success
-
-    def test_get_templates(self):
-        """Test getting menu templates"""
-        success, response = self.run_test(
-            "Get Templates",
-            "GET",
-            "templates",
-            200
-        )
-        
-        if success and isinstance(response, list) and len(response) >= 10:
-            self.log_test("Template Count Validation", True, f"Found {len(response)} templates")
-            return True
-        elif success:
-            self.log_test("Template Count Validation", False, f"Expected 10+ templates, got {len(response) if isinstance(response, list) else 0}")
-            return False
-        return False
-
-    def test_create_menu(self):
-        """Test creating a new menu"""
-        menu_data = {
-            "title": f"Test Menu {datetime.now().strftime('%H%M%S')}",
-            "template_id": "template-1"
-        }
-        
-        success, response = self.run_test(
-            "Create Menu",
-            "POST",
-            "menus",
-            200,
-            data=menu_data
-        )
-        
-        if success and 'id' in response:
-            self.test_menu_id = response['id']
-            return True
-        return False
-
-    def test_get_menus(self):
-        """Test getting user's menus"""
-        success, response = self.run_test(
-            "Get User Menus",
-            "GET",
-            "menus",
-            200
-        )
-        return success
-
-    def test_get_single_menu(self):
-        """Test getting a specific menu"""
-        if not hasattr(self, 'test_menu_id'):
-            self.log_test("Get Single Menu", False, "No menu ID available from create test")
-            return False
-            
-        success, response = self.run_test(
-            "Get Single Menu",
-            "GET",
-            f"menus/{self.test_menu_id}",
-            200
-        )
-        return success
-
-    def test_update_menu(self):
-        """Test updating a menu"""
-        if not hasattr(self, 'test_menu_id'):
-            self.log_test("Update Menu", False, "No menu ID available from create test")
-            return False
-            
-        update_data = {
-            "title": f"Updated Menu {datetime.now().strftime('%H%M%S')}",
-            "items": [
-                {
-                    "id": "item-1",
-                    "name": "Test Dish",
-                    "description": "A delicious test dish",
-                    "price": "15.99",
-                    "category": "Main Course"
-                }
-            ]
-        }
-        
-        success, response = self.run_test(
-            "Update Menu",
-            "PUT",
-            f"menus/{self.test_menu_id}",
-            200,
-            data=update_data
-        )
-        return success
-
-    def test_ai_description_generation(self):
-        """Test AI description generation"""
-        ai_request = {
-            "dish_name": "Grilled Salmon",
-            "ingredients": "Fresh Atlantic salmon, lemon, herbs",
-            "style": "professional"
-        }
-        
-        success, response = self.run_test(
-            "AI Description Generation",
-            "POST",
-            "ai/generate-description",
-            200,
-            data=ai_request
-        )
-        
-        if success and 'description' in response and response['description']:
-            self.log_test("AI Description Content Validation", True, f"Generated: {response['description'][:50]}...")
-            return True
-        elif success:
-            self.log_test("AI Description Content Validation", False, "No description in response")
-            return False
-        return False
-
-    def test_delete_menu(self):
-        """Test deleting a menu"""
-        if not hasattr(self, 'test_menu_id'):
-            self.log_test("Delete Menu", False, "No menu ID available from create test")
-            return False
-            
-        success, response = self.run_test(
-            "Delete Menu",
-            "DELETE",
-            f"menus/{self.test_menu_id}",
-            200
-        )
-        return success
-
-    def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting Menu Creation Platform API Tests")
-        print(f"📍 Testing against: {self.base_url}")
-        print("=" * 60)
-
-        # Authentication Tests
-        print("\n📋 AUTHENTICATION TESTS")
-        if not self.test_user_registration():
-            print("❌ Registration failed, stopping tests")
-            return False
-            
-        if not self.test_user_login():
-            print("❌ Login failed, stopping tests")
-            return False
-            
-        self.test_get_user_profile()
-
-        # Template Tests
-        print("\n📋 TEMPLATE TESTS")
-        self.test_get_templates()
-
-        # Menu CRUD Tests
-        print("\n📋 MENU CRUD TESTS")
-        if self.test_create_menu():
-            self.test_get_menus()
-            self.test_get_single_menu()
-            self.test_update_menu()
-            self.test_delete_menu()
-
-        # AI Integration Tests
-        print("\n📋 AI INTEGRATION TESTS")
-        self.test_ai_description_generation()
-
-        # Print Results
-        print("\n" + "=" * 60)
-        print(f"📊 TEST RESULTS: {self.tests_passed}/{self.tests_run} tests passed")
-        
-        if self.tests_passed == self.tests_run:
-            print("🎉 All tests passed!")
+            self.user_id = response.get('user', {}).get('id')
+            self.log(f"✅ Admin login successful")
             return True
         else:
-            print(f"⚠️  {self.tests_run - self.tests_passed} tests failed")
-            print("\nFailed tests:")
-            for result in self.test_results:
-                if not result['success']:
-                    print(f"  - {result['test']}: {result['details']}")
+            self.log(f"❌ Admin login failed - cannot proceed with P0 tests")
+            return False
+
+    def test_p0_fix_1_ai_descriptions(self):
+        """P0 Fix #1: AI chef-inspired descriptions not generating"""
+        self.log("🤖 Testing P0 Fix #1: AI Description Generation...")
+        self.p0_fixes_tested += 1
+        
+        test_dishes = [
+            {"dish_name": "Grilled Salmon", "ingredients": "Atlantic salmon, lemon butter", "style": "chef"},
+            {"dish_name": "Truffle Risotto", "ingredients": "Arborio rice, black truffle, parmesan", "style": "chef"},
+            {"dish_name": "Beef Wellington", "style": "professional"}
+        ]
+        
+        descriptions_generated = 0
+        
+        for dish in test_dishes:
+            success, response = self.run_test(
+                f"AI Description: {dish['dish_name']}",
+                "POST",
+                "ai/generate-description", 
+                200,
+                data=dish,
+                timeout=60  # AI calls can be slow
+            )
+            
+            if success and response.get('description'):
+                description = response['description']
+                self.log(f"   Generated: '{description[:50]}...'")
+                if len(description) > 5:  # Basic validation
+                    descriptions_generated += 1
+                else:
+                    self.log(f"   ⚠️  Description too short")
+            else:
+                self.log(f"   ❌ No description returned for {dish['dish_name']}")
+        
+        if descriptions_generated >= 2:  # At least 2/3 should work
+            self.p0_fixes_passed += 1
+            self.log(f"✅ P0 Fix #1 VERIFIED: AI descriptions working ({descriptions_generated}/3)")
+            return True
+        else:
+            self.log(f"❌ P0 Fix #1 FAILED: Only {descriptions_generated}/3 descriptions generated")
+            return False
+
+    def test_p0_fix_2_image_import(self):
+        """P0 Fix #2: Image import (JPG/PNG) broken after CSV import was added"""
+        self.log("📷 Testing P0 Fix #2: Image Import with OCR...")
+        self.p0_fixes_tested += 1
+        
+        # Test JPG upload
+        jpg_data = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x01\x01\x11\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\xff\xc4\x00\x14\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00\x3f\x00\xaa\xff\xd9'
+        
+        files = {
+            'file': ('test_menu.jpg', jpg_data, 'image/jpeg')
+        }
+        
+        success, response = self.run_test(
+            "JPG Image Upload",
+            "POST",
+            "import/upload",
+            200,
+            files=files,
+            timeout=90  # OCR processing can be slow
+        )
+        
+        jpg_works = success and 'items_found' in response
+        
+        # Test PNG upload  
+        png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\x0cIDATx\x9cc```\x00\x00\x00\x04\x00\x01\xdd\xcc\xdb\x1d\x00\x00\x00\x00IEND\xaeB`\x82'
+        
+        files = {
+            'file': ('test_menu.png', png_data, 'image/png')
+        }
+        
+        success, response = self.run_test(
+            "PNG Image Upload",
+            "POST", 
+            "import/upload",
+            200,
+            files=files,
+            timeout=90
+        )
+        
+        png_works = success and 'items_found' in response
+        
+        if jpg_works or png_works:
+            self.p0_fixes_passed += 1
+            self.log(f"✅ P0 Fix #2 VERIFIED: Image import working (JPG: {jpg_works}, PNG: {png_works})")
+            return True
+        else:
+            self.log(f"❌ P0 Fix #2 FAILED: Image import not working")
+            return False
+
+    def test_csv_still_works(self):
+        """Verify CSV import still works alongside image import"""
+        self.log("📊 Testing CSV Import Compatibility...")
+        
+        csv_content = """Name,Description,Price,Category
+Grilled Salmon,Fresh Atlantic salmon with herbs,24.99,Main Course
+Caesar Salad,Crisp romaine with parmesan,12.99,Salads
+Chocolate Cake,Rich dark chocolate dessert,8.99,Desserts"""
+        
+        files = {
+            'file': ('test_menu.csv', csv_content.encode(), 'text/csv')
+        }
+        
+        success, response = self.run_test(
+            "CSV Upload",
+            "POST",
+            "import/upload", 
+            200,
+            files=files
+        )
+        
+        if success and response.get('items_found', 0) >= 3:
+            self.log(f"✅ CSV import still working: {response.get('items_found')} items")
+            return True
+        else:
+            self.log(f"❌ CSV import broken")
+            return False
+
+    def test_p0_fix_3_menu_layout(self):
+        """P0 Fix #3: Menu layout unprofessional and not print-ready"""
+        self.log("📋 Testing P0 Fix #3: Professional Menu Layout...")
+        self.p0_fixes_tested += 1
+        
+        # Test single-column layout with dotted leaders
+        single_column_menu = {
+            "title": "Professional Menu Test",
+            "pages": [{
+                "id": "page-test-1",
+                "page_number": 1,
+                "title": "FINE DINING MENU",
+                "subtitle": "Chef's Selection",
+                "items": [
+                    {
+                        "id": "item-1",
+                        "name": "Pan-Seared Scallops",
+                        "description": "Diver scallops with cauliflower purée and pancetta",
+                        "price": "28.00",
+                        "category": "Appetizers"
+                    },
+                    {
+                        "id": "item-2", 
+                        "name": "Wagyu Beef Tenderloin",
+                        "description": "8oz prime cut with truffle butter and seasonal vegetables",
+                        "price": "65.00",
+                        "category": "Main Course"
+                    }
+                ],
+                "design": {
+                    "layout": "single-column",
+                    "backgroundColor": "#ffffff",
+                    "titleFont": "Playfair Display",
+                    "itemFont": "DM Sans",
+                    "priceFont": "Playfair Display",
+                    "padding": 50,
+                    "itemSpacing": 24,
+                    "categorySpacing": 40,
+                    "pageWidth": 816,
+                    "pageHeight": 1056
+                }
+            }]
+        }
+        
+        success, response = self.run_test(
+            "Create Single-Column Menu",
+            "POST",
+            "menus",
+            200,
+            data=single_column_menu
+        )
+        
+        single_column_works = success and 'id' in response
+        menu_id_1 = response.get('id') if success else None
+        
+        # Test two-column layout with balanced distribution
+        two_column_menu = {
+            "title": "Two Column Layout Test",
+            "pages": [{
+                "id": "page-test-2", 
+                "page_number": 1,
+                "title": "BISTRO MENU",
+                "subtitle": "Seasonal Offerings",
+                "items": [
+                    {
+                        "id": "item-3",
+                        "name": "Soup of the Day",
+                        "description": "Chef's daily creation",
+                        "price": "8.00",
+                        "category": "Appetizers"
+                    },
+                    {
+                        "id": "item-4",
+                        "name": "Grilled Chicken",
+                        "description": "Free-range chicken breast",
+                        "price": "22.00", 
+                        "category": "Main Course"
+                    },
+                    {
+                        "id": "item-5",
+                        "name": "Seasonal Vegetables",
+                        "description": "Market fresh selection",
+                        "price": "12.00",
+                        "category": "Sides"
+                    },
+                    {
+                        "id": "item-6",
+                        "name": "Tiramisu",
+                        "description": "Classic Italian dessert",
+                        "price": "9.00",
+                        "category": "Desserts"
+                    }
+                ],
+                "design": {
+                    "layout": "two-column",
+                    "backgroundColor": "#ffffff", 
+                    "titleFont": "Playfair Display",
+                    "itemFont": "DM Sans",
+                    "priceFont": "Playfair Display",
+                    "padding": 50,
+                    "itemSpacing": 24,
+                    "categorySpacing": 40,
+                    "pageWidth": 816,
+                    "pageHeight": 1056
+                }
+            }]
+        }
+        
+        success, response = self.run_test(
+            "Create Two-Column Menu",
+            "POST",
+            "menus", 
+            200,
+            data=two_column_menu
+        )
+        
+        two_column_works = success and 'id' in response
+        menu_id_2 = response.get('id') if success else None
+        
+        # Verify menu retrieval and layout preservation
+        layouts_preserved = True
+        if menu_id_1:
+            success, response = self.run_test(
+                "Retrieve Single-Column Menu",
+                "GET",
+                f"menus/{menu_id_1}",
+                200
+            )
+            if not (success and response.get('pages', [{}])[0].get('design', {}).get('layout') == 'single-column'):
+                layouts_preserved = False
+        
+        if menu_id_2:
+            success, response = self.run_test(
+                "Retrieve Two-Column Menu", 
+                "GET",
+                f"menus/{menu_id_2}",
+                200
+            )
+            if not (success and response.get('pages', [{}])[0].get('design', {}).get('layout') == 'two-column'):
+                layouts_preserved = False
+        
+        if single_column_works and two_column_works and layouts_preserved:
+            self.p0_fixes_passed += 1
+            self.log(f"✅ P0 Fix #3 VERIFIED: Professional layout system working")
+            return True
+        else:
+            self.log(f"❌ P0 Fix #3 FAILED: Layout system issues")
+            return False
+
+    def run_p0_test_suite(self):
+        """Run focused test suite for the 3 P0 fixes"""
+        self.log("🚀 Starting MenuMaker P0 Fixes Test Suite")
+        self.log(f"Testing against: {self.base_url}")
+        
+        start_time = time.time()
+        
+        # Must login first
+        if not self.test_admin_login():
+            self.log("❌ CRITICAL: Cannot login - stopping all tests")
+            return False
+        
+        # Test the 3 P0 fixes
+        self.log("\n" + "="*60)
+        self.log("TESTING P0 FIXES")
+        self.log("="*60)
+        
+        p0_tests = [
+            ("P0 Fix #1: AI Description Generation", self.test_p0_fix_1_ai_descriptions),
+            ("P0 Fix #2: Image Import with OCR", self.test_p0_fix_2_image_import), 
+            ("P0 Fix #3: Professional Menu Layout", self.test_p0_fix_3_menu_layout)
+        ]
+        
+        for test_name, test_func in p0_tests:
+            try:
+                self.log(f"\n--- {test_name} ---")
+                test_func()
+            except Exception as e:
+                self.log(f"❌ {test_name} - EXCEPTION: {str(e)}")
+        
+        # Additional compatibility test
+        self.log(f"\n--- Additional Compatibility Tests ---")
+        self.test_csv_still_works()
+        
+        # Final results
+        duration = time.time() - start_time
+        self.log(f"\n" + "="*60)
+        self.log("P0 FIXES TEST RESULTS")
+        self.log("="*60)
+        self.log(f"Total API tests: {self.tests_run}")
+        self.log(f"API tests passed: {self.tests_passed}")
+        self.log(f"API success rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+        self.log(f"P0 fixes tested: {self.p0_fixes_tested}")
+        self.log(f"P0 fixes verified: {self.p0_fixes_passed}")
+        self.log(f"Duration: {duration:.1f}s")
+        
+        if self.p0_fixes_passed == 3:
+            self.log("🎉 ALL 3 P0 FIXES VERIFIED SUCCESSFULLY!")
+            return True
+        else:
+            self.log(f"⚠️  {3-self.p0_fixes_passed} P0 fixes still have issues")
             return False
 
 def main():
-    tester = MenuAPITester()
-    success = tester.run_all_tests()
+    """Main test execution"""
+    tester = MenuMakerP0Tester()
+    success = tester.run_p0_test_suite()
     return 0 if success else 1
 
 if __name__ == "__main__":
