@@ -72,7 +72,7 @@ export default function ImportMenu() {
       'image/png': ['.png'],
       'text/plain': ['.txt']
     },
-    multiple: false,
+    multiple: true,
     disabled: uploading
   });
 
