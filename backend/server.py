@@ -208,7 +208,8 @@ async def require_admin(user_id: str = Depends(get_current_user)) -> str:
 
 def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
     """Parse menu items from CSV file.
-    Expected columns: name, price, description (optional), category (optional)
+    Supports various formats including tab-delimited with headers like:
+    Name, Description, Current Price, Price, Item, etc.
     """
     try:
         # Try different encodings
@@ -223,15 +224,17 @@ def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
         if not content:
             raise HTTPException(status_code=400, detail="Could not decode CSV file")
         
-        logging.info(f"CSV content preview: {content[:200]}")
+        logging.info(f"CSV content preview: {content[:300]}")
         
-        # Try to detect delimiter
+        # Detect delimiter - check first line
         first_line = content.split('\n')[0]
         delimiter = ','
-        if ';' in first_line and ',' not in first_line:
-            delimiter = ';'
-        elif '\t' in first_line:
+        if '\t' in first_line:
             delimiter = '\t'
+            logging.info("Detected tab-delimited CSV")
+        elif ';' in first_line and ',' not in first_line:
+            delimiter = ';'
+            logging.info("Detected semicolon-delimited CSV")
         
         reader = csv.DictReader(io.StringIO(content), delimiter=delimiter)
         
@@ -263,31 +266,47 @@ def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
                 logging.info(f"Row {row_count}: No name found, skipping")
                 continue
             
-            # Get price - try multiple column name variations
-            price = (row_lower.get('price') or row_lower.get('cost') or row_lower.get('amount') or
-                    row_lower.get('unit price') or row_lower.get('item price') or
+            # Get price - try multiple column name variations (including "current price", "approved price")
+            price = (row_lower.get('price') or row_lower.get('current price') or 
+                    row_lower.get('approved price') or row_lower.get('cost') or 
+                    row_lower.get('amount') or row_lower.get('unit price') or 
+                    row_lower.get('item price') or row_lower.get('suggested price') or
                     row_lower.get('$') or row_lower.get('usd'))
             
-            if not price:
-                # Try second column if no header matches
-                vals = list(row.values())
-                if len(vals) > 1 and vals[1]:
-                    price = vals[1].strip()
+            if not price or price == '—' or price == '-':
+                # Try "current price" specifically or fall back
+                price = row_lower.get('current price') or "0.00"
             
-            if not price:
-                logging.info(f"Row {row_count}: No price found for {name}, using 0.00")
-                price = "0.00"
-            
-            # Clean price (remove $, commas, etc)
+            # Clean price (remove $, commas, spaces, etc.)
             price = re.sub(r'[^\d.]', '', str(price))
             if not price:
                 price = "0.00"
             
-            # Get optional fields
+            # Get description
             description = (row_lower.get('description') or row_lower.get('desc') or 
                           row_lower.get('details') or row_lower.get('info') or '')
+            
+            # Get category - default to Main Course if not found
             category = (row_lower.get('category') or row_lower.get('type') or 
-                       row_lower.get('section') or row_lower.get('group') or 'Main Course')
+                       row_lower.get('section') or row_lower.get('group'))
+            
+            # Auto-categorize based on name if no category
+            if not category:
+                name_lower = name.lower()
+                if any(x in name_lower for x in ['pancake', 'oatmeal', 'egg', 'bacon', 'toast', 'waffle', 'breakfast', 'omelet']):
+                    category = 'Breakfast'
+                elif any(x in name_lower for x in ['salad', 'slaw']):
+                    category = 'Salads'
+                elif any(x in name_lower for x in ['cake', 'pie', 'ice cream', 'dessert', 'cookie', 'brownie']):
+                    category = 'Desserts'
+                elif any(x in name_lower for x in ['coffee', 'tea', 'juice', 'soda', 'drink', 'water', 'lemonade', 'smoothie']):
+                    category = 'Beverages'
+                elif any(x in name_lower for x in ['soup', 'appetizer', 'wing', 'fries', 'nachos', 'dip']):
+                    category = 'Appetizers'
+                elif any(x in name_lower for x in ['side', 'bread', 'rice', 'vegetable']):
+                    category = 'Sides'
+                else:
+                    category = 'Main Course'
             
             items.append({
                 'id': str(uuid.uuid4()),
@@ -296,7 +315,7 @@ def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
                 'description': description,
                 'category': category
             })
-            logging.info(f"Row {row_count}: Added item '{name}' @ ${price}")
+            logging.info(f"Row {row_count}: Added item '{name}' @ ${price} [{category}]")
         
         logging.info(f"CSV parsing complete: {len(items)} items from {row_count} rows")
         return items
