@@ -69,6 +69,26 @@ const DECORATIVE_BORDERS = [
   { id: 'vintage', name: 'Vintage', corners: '✿', sides: '─' },
 ];
 
+// Layout options
+const LAYOUTS = [
+  { id: 'single-column', name: 'Single Column', icon: '▌', columns: 1 },
+  { id: 'two-column', name: 'Two Columns', icon: '▌▐', columns: 2 },
+  { id: 'three-column', name: 'Three Columns', icon: '▌▐▐', columns: 3 },
+  { id: 'grid', name: 'Grid (2x2)', icon: '▚', columns: 2, grid: true },
+  { id: 'centered', name: 'Centered', icon: '◯', columns: 1, centered: true },
+  { id: 'asymmetric', name: 'Asymmetric', icon: '▌ ▐', columns: 2, asymmetric: true },
+];
+
+// Page size presets
+const PAGE_SIZES = [
+  { id: 'letter', name: 'Letter', width: 816, height: 1056, label: '8.5" x 11"' },
+  { id: 'legal', name: 'Legal', width: 816, height: 1344, label: '8.5" x 14"' },
+  { id: 'tabloid', name: 'Tabloid', width: 1056, height: 1632, label: '11" x 17"' },
+  { id: 'half-letter', name: 'Half Letter', width: 528, height: 816, label: '5.5" x 8.5"' },
+  { id: 'digital', name: 'Digital', width: 1080, height: 1920, label: '1080 x 1920' },
+  { id: 'custom', name: 'Custom', width: 800, height: 1100, label: 'Custom' },
+];
+
 const DEFAULT_PAGE_DESIGN = {
   title: 'Menu',
   subtitle: 'A curated selection',
