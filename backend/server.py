@@ -630,7 +630,9 @@ async def upload_menu_file(
             'image/jpeg',
             'image/jpg',
             'image/png',
-            'text/plain'  # Allow text files
+            'text/plain',
+            'text/csv',
+            'application/vnd.ms-excel'
         ]
         
         logging.info(f"Received file: {file.filename}, content_type: {file.content_type}")
