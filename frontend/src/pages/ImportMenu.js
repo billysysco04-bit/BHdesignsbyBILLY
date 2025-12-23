@@ -245,22 +245,22 @@ export default function ImportMenu() {
                 {uploading ? (
                   <>
                     <Loader2 className="w-16 h-16 text-terracotta mx-auto animate-spin" />
-                    <p className="text-xl font-medium text-charcoal">Processing your upload...</p>
+                    <p className="text-xl font-medium text-charcoal">Processing your files...</p>
                     <p className="text-neutral-500">Extracting items from all pages</p>
                   </>
                 ) : (
                   <>
                     <Upload className="w-16 h-16 text-charcoal mx-auto" />
                     <div>
-                      <p className="text-xl font-medium text-charcoal mb-2">{isDragActive ? 'Drop your file here' : 'Drag and drop your file here'}</p>
-                      <p className="text-neutral-500">or click to browse</p>
+                      <p className="text-xl font-medium text-charcoal mb-2">{isDragActive ? 'Drop your files here' : 'Drag and drop files here'}</p>
+                      <p className="text-neutral-500">or click to browse - <span className="text-emerald-600 font-medium">Select multiple files!</span></p>
                     </div>
                     <div className="flex items-center justify-center gap-6 text-neutral-500">
                       <div className="flex items-center gap-2"><FileText className="w-5 h-5" /><span className="text-sm">PDF (multi-page)</span></div>
                       <div className="flex items-center gap-2"><ImageIcon className="w-5 h-5" /><span className="text-sm">JPEG/PNG</span></div>
                       <div className="flex items-center gap-2"><File className="w-5 h-5" /><span className="text-sm">Word/TXT</span></div>
                     </div>
-                    <p className="text-xs text-neutral-400">Maximum file size: 10MB</p>
+                    <p className="text-xs text-neutral-400">Maximum total size: 20MB</p>
                   </>
                 )}
               </div>
