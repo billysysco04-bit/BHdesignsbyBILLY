@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ChefHat, Upload, FileText, Image as ImageIcon, File, CheckCircle, ArrowRight, Loader2, ChevronLeft, ChevronRight, Layers, Eye, FileSpreadsheet, Check } from 'lucide-react';
+import { ChefHat, Upload, FileText, Image as ImageIcon, File, CheckCircle, ArrowRight, Loader2, ChevronLeft, ChevronRight, Layers, FileSpreadsheet, Check, LayoutGrid } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -12,31 +12,46 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-// Page size configurations with items per page estimates
+// Page size configurations
 const PAGE_SIZES = [
-  { id: 'letter', name: 'Letter (8.5" x 11")', width: 816, height: 1056, itemsPerPage: 12 },
-  { id: 'legal', name: 'Legal (8.5" x 14")', width: 816, height: 1344, itemsPerPage: 16 },
-  { id: 'tabloid', name: 'Tabloid (11" x 17")', width: 1056, height: 1632, itemsPerPage: 24 },
-  { id: 'digital', name: 'Digital (1920 x 1080)', width: 1080, height: 1920, itemsPerPage: 20 },
-  { id: 'half-letter', name: 'Half Letter (5.5" x 8.5")', width: 528, height: 816, itemsPerPage: 8 },
+  { id: 'letter', name: 'Letter', label: '8.5" x 11"', width: 816, height: 1056, baseItems: 12 },
+  { id: 'legal', name: 'Legal', label: '8.5" x 14"', width: 816, height: 1344, baseItems: 16 },
+  { id: 'tabloid', name: 'Tabloid', label: '11" x 17"', width: 1056, height: 1632, baseItems: 24 },
+  { id: 'digital', name: 'Digital', label: '1080 x 1920', width: 1080, height: 1920, baseItems: 20 },
+  { id: 'half-letter', name: 'Half Letter', label: '5.5" x 8.5"', width: 528, height: 816, baseItems: 8 },
+];
+
+// Layout configurations with column multipliers
+const LAYOUTS = [
+  { id: 'single-column', name: 'Single Column', icon: '▌', columns: 1, multiplier: 1 },
+  { id: 'two-column', name: 'Two Columns', icon: '▌▐', columns: 2, multiplier: 1.8 },
+  { id: 'three-column', name: 'Three Columns', icon: '▌▐▐', columns: 3, multiplier: 2.5 },
+  { id: 'grid', name: 'Grid (2x2)', icon: '▚', columns: 2, multiplier: 2 },
+  { id: 'centered', name: 'Centered', icon: '◯', columns: 1, multiplier: 0.8 },
 ];
 
 export default function ImportMenu() {
   const [uploading, setUploading] = useState(false);
   const [extractedItems, setExtractedItems] = useState([]);
-  const [extractedText, setExtractedText] = useState('');
   const [extractedPages, setExtractedPages] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPagePreview, setCurrentPagePreview] = useState(0);
   const [step, setStep] = useState(1);
   const [selectedPageSize, setSelectedPageSize] = useState('letter');
+  const [selectedLayout, setSelectedLayout] = useState('single-column');
   const { token } = useAuth();
   const navigate = useNavigate();
 
-  // Calculate pages based on items and page size
-  const calculatePages = (items, pageSizeId) => {
+  // Calculate items per page based on page size and layout
+  const getItemsPerPage = (pageSizeId, layoutId) => {
     const pageSize = PAGE_SIZES.find(p => p.id === pageSizeId) || PAGE_SIZES[0];
-    const itemsPerPage = pageSize.itemsPerPage;
+    const layout = LAYOUTS.find(l => l.id === layoutId) || LAYOUTS[0];
+    return Math.floor(pageSize.baseItems * layout.multiplier);
+  };
+
+  // Calculate pages based on items, page size, and layout
+  const calculatePages = (items, pageSizeId, layoutId) => {
+    const itemsPerPage = getItemsPerPage(pageSizeId, layoutId);
     const pages = [];
     
     for (let i = 0; i < items.length; i += itemsPerPage) {
@@ -48,7 +63,7 @@ export default function ImportMenu() {
       });
     }
     
-    return pages;
+    return pages.length > 0 ? pages : [{ page_number: 1, items: [], text: 'Empty page' }];
   };
 
   const onDrop = async (acceptedFiles) => {
@@ -83,14 +98,15 @@ export default function ImportMenu() {
 
       setExtractedItems(allItems);
       
-      // Calculate pages based on selected page size
-      const calculatedPages = calculatePages(allItems, selectedPageSize);
+      // Calculate pages based on selected page size AND layout
+      const calculatedPages = calculatePages(allItems, selectedPageSize, selectedLayout);
       setExtractedPages(calculatedPages);
       setTotalPages(calculatedPages.length);
       setCurrentPagePreview(0);
       setStep(2);
       
-      toast.success(`Extracted ${allItems.length} items! Will create ${calculatedPages.length} page(s) for ${PAGE_SIZES.find(p => p.id === selectedPageSize)?.name}`);
+      const itemsPerPage = getItemsPerPage(selectedPageSize, selectedLayout);
+      toast.success(`Extracted ${allItems.length} items! → ${calculatedPages.length} page(s) (${itemsPerPage} items/page)`);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to process file(s)');
     } finally {
@@ -98,15 +114,28 @@ export default function ImportMenu() {
     }
   };
 
-  // Recalculate pages when page size changes
+  // Recalculate pages when page size OR layout changes
   const handlePageSizeChange = (sizeId) => {
     setSelectedPageSize(sizeId);
     if (extractedItems.length > 0) {
-      const calculatedPages = calculatePages(extractedItems, sizeId);
+      const calculatedPages = calculatePages(extractedItems, sizeId, selectedLayout);
       setExtractedPages(calculatedPages);
       setTotalPages(calculatedPages.length);
       setCurrentPagePreview(0);
-      toast.info(`Recalculated: ${calculatedPages.length} page(s) for ${PAGE_SIZES.find(p => p.id === sizeId)?.name}`);
+      const itemsPerPage = getItemsPerPage(sizeId, selectedLayout);
+      toast.info(`Recalculated: ${calculatedPages.length} page(s) (${itemsPerPage} items/page)`);
+    }
+  };
+
+  const handleLayoutChange = (layoutId) => {
+    setSelectedLayout(layoutId);
+    if (extractedItems.length > 0) {
+      const calculatedPages = calculatePages(extractedItems, selectedPageSize, layoutId);
+      setExtractedPages(calculatedPages);
+      setTotalPages(calculatedPages.length);
+      setCurrentPagePreview(0);
+      const itemsPerPage = getItemsPerPage(selectedPageSize, layoutId);
+      toast.info(`Recalculated: ${calculatedPages.length} page(s) (${itemsPerPage} items/page)`);
     }
   };
 
@@ -129,8 +158,9 @@ export default function ImportMenu() {
   const handleCreateMenu = async () => {
     try {
       const pageSize = PAGE_SIZES.find(p => p.id === selectedPageSize) || PAGE_SIZES[0];
+      const layout = LAYOUTS.find(l => l.id === selectedLayout) || LAYOUTS[0];
       
-      // Create menu pages from extracted data with page size settings
+      // Create menu pages with page size and layout settings
       const menuPages = extractedPages.map((page, idx) => ({
         id: `page-${Date.now()}-${idx}`,
         page_number: idx + 1,
@@ -148,12 +178,12 @@ export default function ImportMenu() {
           pageWidth: pageSize.width,
           pageHeight: pageSize.height,
           pageSizeId: selectedPageSize,
+          layout: selectedLayout,
           menuBorderStyle: 'none',
           menuBorderWidth: 2,
           menuBorderColor: '#1a1a1a',
           decorativeBorder: 'none',
-          decorativeBorderColor: '#1a1a1a',
-          layout: 'single-column'
+          decorativeBorderColor: '#1a1a1a'
         }
       }));
 
@@ -184,6 +214,9 @@ export default function ImportMenu() {
     }
   };
 
+  // Get current items per page for display
+  const currentItemsPerPage = getItemsPerPage(selectedPageSize, selectedLayout);
+
   return (
     <div className="min-h-screen bg-paper grain">
       <header className="border-b border-neutral-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
@@ -207,17 +240,12 @@ export default function ImportMenu() {
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-2 ${step >= 1 ? 'text-charcoal' : 'text-neutral-300'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-charcoal text-white' : 'bg-neutral-200'}`}>1</div>
-              <span className="font-medium">Upload</span>
+              <span className="font-medium">Setup & Upload</span>
             </div>
             <ArrowRight className="w-5 h-5 text-neutral-300" />
             <div className={`flex items-center gap-2 ${step >= 2 ? 'text-charcoal' : 'text-neutral-300'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-charcoal text-white' : 'bg-neutral-200'}`}>2</div>
-              <span className="font-medium">Review</span>
-            </div>
-            <ArrowRight className="w-5 h-5 text-neutral-300" />
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-charcoal' : 'text-neutral-300'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-charcoal text-white' : 'bg-neutral-200'}`}>3</div>
-              <span className="font-medium">Create</span>
+              <span className="font-medium">Review & Create</span>
             </div>
           </div>
         </div>
@@ -225,38 +253,85 @@ export default function ImportMenu() {
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <div className="text-center">
-              <h1 className="font-playfair text-4xl md:text-5xl font-bold text-charcoal mb-4">Transform Your Menu</h1>
-              <p className="text-xl text-neutral-600 max-w-2xl mx-auto">Upload your existing menu or CSV spreadsheet and we'll extract the items for you!</p>
+              <h1 className="font-playfair text-4xl md:text-5xl font-bold text-charcoal mb-4">Import Your Menu</h1>
+              <p className="text-xl text-neutral-600 max-w-2xl mx-auto">Select your page size and layout, then upload your menu file</p>
             </div>
 
-            {/* Page Size Selection */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-6 max-w-2xl mx-auto">
-              <Label className="text-charcoal font-semibold mb-4 block">Select Page Size (for multi-page menus)</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {PAGE_SIZES.map((size) => (
-                  <button
-                    key={size.id}
-                    onClick={() => setSelectedPageSize(size.id)}
-                    className={`p-4 rounded-lg border-2 transition-all text-left ${
-                      selectedPageSize === size.id
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-neutral-200 hover:border-neutral-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className={`font-medium ${selectedPageSize === size.id ? 'text-emerald-700' : 'text-charcoal'}`}>
-                          {size.name.split(' (')[0]}
-                        </p>
-                        <p className="text-xs text-neutral-500 mt-1">{size.name.match(/\(([^)]+)\)/)?.[1]}</p>
-                        <p className="text-xs text-neutral-400 mt-1">~{size.itemsPerPage} items/page</p>
+            {/* Page Size & Layout Selection - BEFORE UPLOAD */}
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* Page Size */}
+              <div className="bg-white border border-neutral-200 rounded-xl p-6">
+                <Label className="text-charcoal font-semibold mb-4 block flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-emerald-600" />
+                  Page Size
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {PAGE_SIZES.map((size) => (
+                    <button
+                      key={size.id}
+                      onClick={() => handlePageSizeChange(size.id)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        selectedPageSize === size.id
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className={`font-medium text-sm ${selectedPageSize === size.id ? 'text-emerald-700' : 'text-charcoal'}`}>
+                            {size.name}
+                          </p>
+                          <p className="text-xs text-neutral-500">{size.label}</p>
+                        </div>
+                        {selectedPageSize === size.id && (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        )}
                       </div>
-                      {selectedPageSize === size.id && (
-                        <Check className="w-5 h-5 text-emerald-500" />
-                      )}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Layout Style */}
+              <div className="bg-white border border-neutral-200 rounded-xl p-6">
+                <Label className="text-charcoal font-semibold mb-4 block flex items-center gap-2">
+                  <LayoutGrid className="w-5 h-5 text-emerald-600" />
+                  Layout Style
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {LAYOUTS.map((layout) => (
+                    <button
+                      key={layout.id}
+                      onClick={() => handleLayoutChange(layout.id)}
+                      className={`p-3 rounded-lg border-2 transition-all ${
+                        selectedLayout === layout.id
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{layout.icon}</span>
+                          <span className={`text-sm font-medium ${selectedLayout === layout.id ? 'text-emerald-700' : 'text-charcoal'}`}>
+                            {layout.name}
+                          </span>
+                        </div>
+                        {selectedLayout === layout.id && (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Items per page indicator */}
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full">
+                <Layers className="w-4 h-4" />
+                <span className="font-medium">~{currentItemsPerPage} items per page</span>
+                <span className="text-emerald-600">with current settings</span>
               </div>
             </div>
 
@@ -284,7 +359,6 @@ export default function ImportMenu() {
                       <div className="flex items-center gap-2"><File className="w-5 h-5" /><span className="text-sm">Word/TXT</span></div>
                       <div className="flex items-center gap-2 text-emerald-600 font-medium"><FileSpreadsheet className="w-5 h-5" /><span className="text-sm">CSV Spreadsheet</span></div>
                     </div>
-                    <p className="text-xs text-neutral-400">Maximum total size: 20MB</p>
                   </>
                 )}
               </div>
@@ -302,35 +376,63 @@ export default function ImportMenu() {
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h1 className="font-playfair text-4xl font-bold text-charcoal mb-4">Items Extracted!</h1>
               <p className="text-xl text-neutral-600">
-                Found {extractedItems.length} items → {totalPages} page(s) for {PAGE_SIZES.find(p => p.id === selectedPageSize)?.name}
+                Found {extractedItems.length} items → <span className="text-emerald-600 font-bold">{totalPages} page(s)</span>
               </p>
             </div>
 
-            {/* Page Size Selector - can change after upload */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                  <Layers className="w-6 h-6 text-emerald-600" />
-                  <div>
-                    <p className="font-semibold text-emerald-800">Page Layout</p>
-                    <p className="text-sm text-emerald-600">Change page size to adjust pages</p>
+            {/* Adjustable Settings - Can still change after upload */}
+            <div className="bg-white border border-neutral-200 rounded-xl p-6">
+              <h3 className="font-semibold text-charcoal mb-4 flex items-center gap-2">
+                <LayoutGrid className="w-5 h-5 text-emerald-600" />
+                Adjust Page Layout (pages will recalculate)
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Page Size */}
+                <div>
+                  <Label className="text-neutral-600 text-sm mb-2 block">Page Size</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PAGE_SIZES.map((size) => (
+                      <button
+                        key={size.id}
+                        onClick={() => handlePageSizeChange(size.id)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                          selectedPageSize === size.id
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {size.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  {PAGE_SIZES.map((size) => (
-                    <button
-                      key={size.id}
-                      onClick={() => handlePageSizeChange(size.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                        selectedPageSize === size.id
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-white text-emerald-700 hover:bg-emerald-100'
-                      }`}
-                    >
-                      {size.name.split(' (')[0]}
-                    </button>
-                  ))}
+
+                {/* Layout */}
+                <div>
+                  <Label className="text-neutral-600 text-sm mb-2 block">Layout Style</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {LAYOUTS.map((layout) => (
+                      <button
+                        key={layout.id}
+                        onClick={() => handleLayoutChange(layout.id)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${
+                          selectedLayout === layout.id
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                        }`}
+                      >
+                        <span>{layout.icon}</span>
+                        {layout.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              </div>
+              <div className="mt-4 text-center">
+                <span className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full text-sm">
+                  <Check className="w-4 h-4" />
+                  {currentItemsPerPage} items/page × {totalPages} pages = {extractedItems.length} items
+                </span>
               </div>
             </div>
 
