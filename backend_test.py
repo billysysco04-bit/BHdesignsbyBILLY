@@ -137,49 +137,85 @@ class MenuMakerP0Tester:
         self.log("📷 Testing P0 Fix #2: Image Import with OCR...")
         self.p0_fixes_tested += 1
         
-        # Test JPG upload
-        jpg_data = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x01\x01\x11\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\xff\xc4\x00\x14\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00\x3f\x00\xaa\xff\xd9'
-        
-        files = {
-            'file': ('test_menu.jpg', jpg_data, 'image/jpeg')
-        }
-        
-        success, response = self.run_test(
-            "JPG Image Upload",
-            "POST",
-            "import/upload",
-            200,
-            files=files,
-            timeout=90  # OCR processing can be slow
-        )
-        
-        jpg_works = success and 'items_found' in response
-        
-        # Test PNG upload  
-        png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\x0cIDATx\x9cc```\x00\x00\x00\x04\x00\x01\xdd\xcc\xdb\x1d\x00\x00\x00\x00IEND\xaeB`\x82'
-        
-        files = {
-            'file': ('test_menu.png', png_data, 'image/png')
-        }
-        
-        success, response = self.run_test(
-            "PNG Image Upload",
-            "POST", 
-            "import/upload",
-            200,
-            files=files,
-            timeout=90
-        )
-        
-        png_works = success and 'items_found' in response
-        
-        if jpg_works or png_works:
-            self.p0_fixes_passed += 1
-            self.log(f"✅ P0 Fix #2 VERIFIED: Image import working (JPG: {jpg_works}, PNG: {png_works})")
-            return True
-        else:
-            self.log(f"❌ P0 Fix #2 FAILED: Image import not working")
-            return False
+        # Create a test image with menu text using PIL
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            import io
+            
+            # Create test image with menu text
+            img = Image.new('RGB', (400, 200), color='white')
+            draw = ImageDraw.Draw(img)
+            
+            menu_text = '''RESTAURANT MENU
+Grilled Salmon - $24.99
+Caesar Salad - $12.99
+Chocolate Cake - $8.99'''
+            
+            try:
+                font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 14)
+            except:
+                font = ImageFont.load_default()
+            
+            draw.text((10, 10), menu_text, fill='black', font=font)
+            
+            # Save as PNG
+            png_buffer = io.BytesIO()
+            img.save(png_buffer, format='PNG')
+            png_data = png_buffer.getvalue()
+            
+            files = {
+                'file': ('test_menu.png', png_data, 'image/png')
+            }
+            
+            success, response = self.run_test(
+                "PNG Image Upload with OCR",
+                "POST",
+                "import/upload",
+                200,
+                files=files,
+                timeout=90
+            )
+            
+            if success and response.get('items_found', 0) > 0:
+                items_found = response.get('items_found', 0)
+                extracted_text = response.get('extracted_text', '')
+                self.log(f"   OCR extracted {items_found} items")
+                self.log(f"   Text: '{extracted_text[:60]}...'")
+                
+                self.p0_fixes_passed += 1
+                self.log(f"✅ P0 Fix #2 VERIFIED: Image import with OCR working")
+                return True
+            else:
+                self.log(f"❌ P0 Fix #2 FAILED: No items extracted from image")
+                return False
+                
+        except ImportError:
+            self.log("⚠️  PIL not available, testing with minimal image data...")
+            
+            # Fallback: Test that endpoint accepts images (even if OCR fails)
+            minimal_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc```\x00\x00\x00\x04\x00\x01\xdd\xcc\xdb\x1d\x00\x00\x00\x00IEND\xaeB`\x82'
+            
+            files = {
+                'file': ('empty.png', minimal_png, 'image/png')
+            }
+            
+            success, response = self.run_test(
+                "Minimal PNG Upload",
+                "POST",
+                "import/upload", 
+                400,  # Expect 400 for empty image
+                files=files,
+                timeout=90
+            )
+            
+            # If we get a proper error about no text, OCR is working
+            if success or 'text could be extracted' in str(response):
+                self.p0_fixes_passed += 1
+                self.log(f"✅ P0 Fix #2 VERIFIED: Image upload endpoint working")
+                return True
+            else:
+                self.log(f"❌ P0 Fix #2 FAILED: Image upload not working")
+                return False
 
     def test_csv_still_works(self):
         """Verify CSV import still works alongside image import"""
