@@ -542,6 +542,49 @@ export default function Editor() {
     }
   };
 
+  // Apply layout to ALL pages (for consistent multi-page menus)
+  const applyLayoutToAllPages = (layoutId) => {
+    const layoutConfig = LAYOUTS.find(l => l.id === layoutId) || LAYOUTS[0];
+    const newDesign = { ...design, layout: layoutId };
+    setDesign(newDesign);
+    
+    const updatedPages = pages.map((page, idx) => ({
+      ...page,
+      design: {
+        ...page.design,
+        layout: layoutId
+      }
+    }));
+    setPages(updatedPages);
+    toast.success(`Layout applied to all ${updatedPages.length} pages`);
+  };
+
+  // Apply page size to ALL pages
+  const applyPageSizeToAllPages = (sizeId) => {
+    const pageSize = PAGE_SIZES.find(p => p.id === sizeId);
+    if (!pageSize) return;
+    
+    const newDesign = { 
+      ...design, 
+      pageSizeId: sizeId, 
+      pageWidth: pageSize.width, 
+      pageHeight: pageSize.height 
+    };
+    setDesign(newDesign);
+    
+    const updatedPages = pages.map((page) => ({
+      ...page,
+      design: {
+        ...page.design,
+        pageSizeId: sizeId,
+        pageWidth: pageSize.width,
+        pageHeight: pageSize.height
+      }
+    }));
+    setPages(updatedPages);
+    toast.success(`Page size applied to all ${updatedPages.length} pages`);
+  };
+
   // ============= HANDLERS =============
   const handleSave = async () => {
     setSaving(true);
