@@ -504,15 +504,27 @@ async def admin_delete_menu(menu_id: str, admin_id: str = Depends(require_admin)
     return {"message": "Menu deleted successfully"}
 
 # File extraction helper functions
-def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Extract text from PDF file"""
+def extract_text_from_pdf(file_bytes: bytes) -> dict:
+    """Extract text from PDF file, page by page"""
     try:
         pdf_file = io.BytesIO(file_bytes)
         reader = PdfReader(pdf_file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-        return text.strip()
+        pages_data = []
+        all_text = ""
+        
+        for i, page in enumerate(reader.pages):
+            page_text = page.extract_text() or ""
+            pages_data.append({
+                "page_number": i + 1,
+                "text": page_text.strip()
+            })
+            all_text += page_text + "\n"
+        
+        return {
+            "total_pages": len(reader.pages),
+            "pages": pages_data,
+            "combined_text": all_text.strip()
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to extract text from PDF: {str(e)}")
 
