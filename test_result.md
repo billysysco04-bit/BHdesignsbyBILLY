@@ -101,3 +101,160 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Fix the Menu Editor UI/UX issues - add custom background image upload, decorative borders, and clear visual feedback for all selections"
+
+backend:
+  - task: "Menu CRUD API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Existing functionality - not modified"
+
+  - task: "AI Description Generation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Existing functionality - not modified"
+
+frontend:
+  - task: "Menu Editor - Background Image Upload"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented custom background image upload with drag-drop, preview with checkmark when selected, ability to remove custom background"
+
+  - task: "Menu Editor - Preset Backgrounds"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented 6 preset backgrounds (None, Elegant Texture, Wood Grain, Marble, Linen, Dark Slate) with thumbnail previews and clear checkmark selection"
+
+  - task: "Menu Editor - Simple Border Styles"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented 5 simple border styles (None, Solid, Dashed, Dotted, Double) with width and color customization"
+
+  - task: "Menu Editor - Decorative Borders"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented 7 decorative frame styles (None, Elegant, Ornate, Classic, Floral, Art Deco, Vintage) with corner symbols and color customization"
+
+  - task: "Menu Editor - Color Picker with Selection Feedback"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented color pickers with preset color swatches showing checkmarks on selected colors, plus HEX input for custom colors"
+
+  - task: "Menu Editor - Font Selection with Preview"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented font dropdowns that display fonts in their actual style, with font type labels (serif/sans-serif)"
+
+  - task: "Menu Editor - Size Sliders with Value Display"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented sliders for sizes with clear value display badges showing current px/% values"
+
+  - task: "Menu Editor - Section Dividers"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented title and category dividers with toggles and style options (solid, dashed, dotted, double)"
+
+  - task: "Menu Editor - Add/Edit Item Dialog"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Editor.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Clean dialog for adding/editing menu items with AI description generation button"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Menu Editor - Background Image Upload"
+    - "Menu Editor - Preset Backgrounds"
+    - "Menu Editor - Simple Border Styles"
+    - "Menu Editor - Decorative Borders"
+    - "Menu Editor - Color Picker with Selection Feedback"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Completely rebuilt the Menu Editor (Editor.js) with: 1) Custom background image upload with drag-drop and preview 2) Preset backgrounds with thumbnail selection 3) Simple borders (solid/dashed/dotted/double) with width/color controls 4) Decorative ornamental borders (7 styles) 5) Color pickers with preset swatches and checkmark selection feedback 6) Size sliders with value badges. All tabs (Text, Style, BG, Border) are organized and functional. Please test the entire editor flow including all design controls and verify visual feedback works correctly."
