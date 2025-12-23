@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class MenuAPITester:
-    def __init__(self, base_url="https://easymenu-8.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://menumaker-2.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
