@@ -619,7 +619,7 @@ async def upload_menu_file(
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user)
 ):
-    """Upload and extract menu items from file (PDF, Word, or Image)"""
+    """Upload and extract menu items from file (PDF, Word, or Image) with multi-page support"""
     try:
         # Validate file type
         allowed_types = [
@@ -644,27 +644,68 @@ async def upload_menu_file(
         file_bytes = await file.read()
         
         # Extract text based on file type
+        pages_data = []
         extracted_text = ""
+        total_pages = 1
+        
         if file.content_type == 'application/pdf':
-            extracted_text = extract_text_from_pdf(file_bytes)
+            # PDF: Extract page by page
+            pdf_result = extract_text_from_pdf(file_bytes)
+            total_pages = pdf_result["total_pages"]
+            extracted_text = pdf_result["combined_text"]
+            
+            # Parse items for each page
+            for page_info in pdf_result["pages"]:
+                if page_info["text"].strip():
+                    page_items = await parse_menu_items_with_ai(page_info["text"])
+                    pages_data.append({
+                        "page_number": page_info["page_number"],
+                        "text": page_info["text"][:300] + "..." if len(page_info["text"]) > 300 else page_info["text"],
+                        "items": page_items
+                    })
         elif file.content_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']:
             extracted_text = extract_text_from_docx(file_bytes)
+            if extracted_text:
+                page_items = await parse_menu_items_with_ai(extracted_text)
+                pages_data.append({
+                    "page_number": 1,
+                    "text": extracted_text[:300] + "..." if len(extracted_text) > 300 else extracted_text,
+                    "items": page_items
+                })
         elif file.content_type in ['image/jpeg', 'image/jpg', 'image/png']:
             extracted_text = extract_text_from_image(file_bytes)
+            if extracted_text:
+                page_items = await parse_menu_items_with_ai(extracted_text)
+                pages_data.append({
+                    "page_number": 1,
+                    "text": extracted_text[:300] + "..." if len(extracted_text) > 300 else extracted_text,
+                    "items": page_items
+                })
         elif file.content_type == 'text/plain':
             extracted_text = file_bytes.decode('utf-8')
+            if extracted_text:
+                page_items = await parse_menu_items_with_ai(extracted_text)
+                pages_data.append({
+                    "page_number": 1,
+                    "text": extracted_text[:300] + "..." if len(extracted_text) > 300 else extracted_text,
+                    "items": page_items
+                })
         
         if not extracted_text:
             raise HTTPException(status_code=400, detail="No text could be extracted from the file")
         
-        # Use AI to parse menu items
-        menu_items = await parse_menu_items_with_ai(extracted_text)
+        # Flatten all items for backward compatibility
+        all_items = []
+        for page in pages_data:
+            all_items.extend(page.get("items", []))
         
         return {
             "success": True,
             "extracted_text": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,
-            "items_found": len(menu_items),
-            "items": menu_items
+            "items_found": len(all_items),
+            "items": all_items,
+            "total_pages": total_pages,
+            "pages": pages_data  # New: page-by-page data with items per page
         }
         
     except HTTPException:
