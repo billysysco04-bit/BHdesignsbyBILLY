@@ -201,6 +201,16 @@ export default function MenuAnalysis() {
     }));
   };
 
+  const calculateApprovedPrice = (item, decision) => {
+    switch (decision) {
+      case "maintain": return item.current_price;
+      case "increase": return item.suggested_price;
+      case "decrease": return (item.suggested_price * 0.9).toFixed(2);
+      case "custom": return customPrices[item.id] || item.current_price;
+      default: return item.current_price;
+    }
+  };
+
   // Real-time calculation of totals based on pricing decisions
   const calculateTotals = () => {
     if (!menu?.items) return { totalFoodCost: 0, totalProfit: 0, totalRevenue: 0, avgFoodCostPct: 0 };
@@ -251,16 +261,6 @@ export default function MenuAnalysis() {
     if (profit > 0) return "text-emerald-400";
     if (profit < 0) return "text-red-400";
     return "text-zinc-400";
-  };
-
-  const calculateApprovedPrice = (item, decision) => {
-    switch (decision) {
-      case "maintain": return item.current_price;
-      case "increase": return item.suggested_price;
-      case "decrease": return (item.suggested_price * 0.9).toFixed(2);
-      case "custom": return customPrices[item.id] || item.current_price;
-      default: return item.current_price;
-    }
   };
 
   if (loading) {
