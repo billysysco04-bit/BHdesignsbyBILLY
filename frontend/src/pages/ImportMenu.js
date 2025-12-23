@@ -261,6 +261,7 @@ export default function ImportMenu() {
                       <div className="flex items-center gap-2"><FileText className="w-5 h-5" /><span className="text-sm">PDF (multi-page)</span></div>
                       <div className="flex items-center gap-2"><ImageIcon className="w-5 h-5" /><span className="text-sm">JPEG/PNG</span></div>
                       <div className="flex items-center gap-2"><File className="w-5 h-5" /><span className="text-sm">Word/TXT</span></div>
+                      <div className="flex items-center gap-2 text-emerald-600 font-medium"><File className="w-5 h-5" /><span className="text-sm">CSV Spreadsheet</span></div>
                     </div>
                     <p className="text-xs text-neutral-400">Maximum total size: 20MB</p>
                   </>
