@@ -741,51 +741,106 @@ export default function Editor() {
                 ) : (
                   <div style={{ 
                     columnCount: LAYOUTS.find(l => l.id === design.layout)?.columns || 1,
-                    columnGap: '30px'
+                    columnGap: '40px',
+                    columnRule: design.layout !== 'single-column' && design.layout !== 'centered' ? '1px solid #e5e5e5' : 'none'
                   }}>
                     {Object.entries(groupedItems).map(([category, items], idx) => (
                       <div key={category} style={{ 
-                        marginBottom: idx < Object.keys(groupedItems).length - 1 ? `${design.categorySpacing}px` : '0',
-                        breakInside: 'avoid'
+                        marginBottom: `${design.categorySpacing}px`,
+                        breakInside: 'avoid',
+                        pageBreakInside: 'avoid'
                       }}>
-                        <h2 style={{
-                          fontFamily: design.categoryFont,
-                          fontSize: `${design.categorySize}px`,
-                          color: design.categoryColor,
-                          fontWeight: 'bold',
+                        {/* Category Header */}
+                        <div style={{
+                          textAlign: design.layout === 'centered' ? 'center' : 'left',
                           marginBottom: `${design.itemSpacing}px`,
-                          textTransform: design.categoryUppercase ? 'uppercase' : 'none',
-                          letterSpacing: design.categoryUppercase ? '2px' : 'normal',
                           borderBottom: design.showCategoryBorder ? `1px ${design.categoryBorderStyle} ${design.categoryBorderColor}` : 'none',
-                          paddingBottom: design.showCategoryBorder ? '10px' : '0',
-                          textAlign: design.layout === 'centered' ? 'center' : 'left'
+                          paddingBottom: design.showCategoryBorder ? '12px' : '0'
                         }}>
-                          {category}
-                        </h2>
-                        {items.map((item, itemIdx) => (
-                          <div key={item.id} style={{ 
-                            marginBottom: itemIdx < items.length - 1 ? `${design.itemSpacing}px` : '0', 
-                            display: 'flex', 
-                            justifyContent: design.layout === 'centered' ? 'center' : 'space-between', 
-                            alignItems: 'flex-start', 
-                            gap: '16px',
-                            flexDirection: design.layout === 'centered' ? 'column' : 'row',
-                            textAlign: design.layout === 'centered' ? 'center' : 'left',
-                            breakInside: 'avoid'
+                          <h2 style={{
+                            fontFamily: design.categoryFont,
+                            fontSize: `${design.categorySize}px`,
+                            color: design.categoryColor,
+                            fontWeight: '700',
+                            textTransform: design.categoryUppercase ? 'uppercase' : 'none',
+                            letterSpacing: design.categoryUppercase ? '3px' : 'normal',
+                            margin: 0
                           }}>
-                            <div style={{ flex: design.layout === 'centered' ? 'none' : 1 }}>
-                              <h3 style={{ fontFamily: design.itemFont, fontSize: `${design.itemNameSize}px`, color: design.itemNameColor, fontWeight: '600', marginBottom: item.description ? '6px' : '0' }}>
-                                {item.name}
-                              </h3>
-                              {item.description && (
-                                <p style={{ fontFamily: design.itemFont, fontSize: `${design.descriptionSize}px`, color: design.descriptionColor, lineHeight: '1.5' }}>
-                                  {item.description}
-                                </p>
-                              )}
+                            {category}
+                          </h2>
+                        </div>
+                        
+                        {/* Menu Items */}
+                        {items.map((item, itemIdx) => (
+                          <div 
+                            key={item.id} 
+                            style={{ 
+                              marginBottom: itemIdx < items.length - 1 ? `${design.itemSpacing}px` : '0',
+                              breakInside: 'avoid',
+                              pageBreakInside: 'avoid'
+                            }}
+                          >
+                            {/* Item Name and Price Row */}
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: design.layout === 'centered' ? 'center' : 'space-between',
+                              alignItems: 'baseline',
+                              gap: '8px',
+                              flexDirection: design.layout === 'centered' ? 'column' : 'row',
+                              textAlign: design.layout === 'centered' ? 'center' : 'left'
+                            }}>
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'baseline', 
+                                gap: '8px',
+                                flex: design.layout === 'centered' ? 'none' : 1,
+                                minWidth: 0
+                              }}>
+                                <h3 style={{ 
+                                  fontFamily: design.itemFont, 
+                                  fontSize: `${design.itemNameSize}px`, 
+                                  color: design.itemNameColor, 
+                                  fontWeight: '600',
+                                  margin: 0,
+                                  lineHeight: '1.3'
+                                }}>
+                                  {item.name}
+                                </h3>
+                                {/* Dot leader for single column */}
+                                {design.layout === 'single-column' && (
+                                  <span style={{
+                                    flex: 1,
+                                    borderBottom: '1px dotted #ccc',
+                                    marginBottom: '4px',
+                                    minWidth: '20px'
+                                  }} />
+                                )}
+                              </div>
+                              <span style={{ 
+                                fontFamily: design.priceFont, 
+                                fontSize: `${design.priceSize}px`, 
+                                color: design.priceColor, 
+                                fontWeight: '700',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                ${item.price}
+                              </span>
                             </div>
-                            <div style={{ fontFamily: design.priceFont, fontSize: `${design.priceSize}px`, color: design.priceColor, fontWeight: 'bold', flexShrink: 0 }}>
-                              ${item.price}
-                            </div>
+                            
+                            {/* Description */}
+                            {item.description && (
+                              <p style={{ 
+                                fontFamily: design.itemFont, 
+                                fontSize: `${design.descriptionSize}px`, 
+                                color: design.descriptionColor, 
+                                lineHeight: '1.5',
+                                margin: '4px 0 0 0',
+                                fontStyle: 'italic',
+                                textAlign: design.layout === 'centered' ? 'center' : 'left'
+                              }}>
+                                {item.description}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -795,9 +850,21 @@ export default function Editor() {
 
                 {/* Warning Bottom */}
                 {design.showWarning && design.warningPosition === 'bottom' && (
-                  <div className="mt-10 p-4 bg-orange-100 border-2 border-orange-400 rounded-lg">
-                    <p className="text-orange-900 text-xs leading-relaxed font-medium">
-                      <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                  <div style={{ 
+                    marginTop: '40px', 
+                    padding: '16px', 
+                    backgroundColor: '#fef3c7', 
+                    border: '1px solid #f59e0b',
+                    borderRadius: '8px'
+                  }}>
+                    <p style={{ 
+                      color: '#92400e', 
+                      fontSize: '11px', 
+                      lineHeight: '1.5',
+                      margin: 0,
+                      textAlign: 'center'
+                    }}>
+                      <strong>CONSUMER ADVISORY:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
                     </p>
                   </div>
                 )}
