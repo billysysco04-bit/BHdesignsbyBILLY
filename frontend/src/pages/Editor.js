@@ -238,8 +238,15 @@ export default function Editor() {
         ...DEFAULT_PAGE_DESIGN,
         title: currentPage.title || 'Menu',
         subtitle: currentPage.subtitle || '',
+        // Ensure all saved design properties override defaults
         ...pageDesign
       });
+      // Update custom background preview if there's a custom image
+      if (pageDesign.backgroundImageType === 'custom' && pageDesign.backgroundImage) {
+        setCustomBackgroundPreview(pageDesign.backgroundImage);
+      } else {
+        setCustomBackgroundPreview(null);
+      }
     }
   }, [currentPageIndex, pages]);
 
