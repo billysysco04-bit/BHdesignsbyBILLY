@@ -112,13 +112,38 @@ class MenuItem(BaseModel):
     category: str
     image_url: Optional[str] = None
 
+class MenuPageDesign(BaseModel):
+    """Design settings for a single menu page"""
+    backgroundColor: str = "#ffffff"
+    backgroundImage: str = ""
+    backgroundOpacity: int = 100
+    titleFont: str = "Playfair Display"
+    titleSize: int = 52
+    titleColor: str = "#1a1a1a"
+    itemFont: str = "DM Sans"
+    menuBorderStyle: str = "none"
+    menuBorderWidth: int = 2
+    menuBorderColor: str = "#1a1a1a"
+    decorativeBorder: str = "none"
+    decorativeBorderColor: str = "#1a1a1a"
+
+class MenuPage(BaseModel):
+    """A single page in a multi-page menu"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    page_number: int = 1
+    title: str = ""
+    subtitle: str = ""
+    items: List[MenuItem] = []
+    design: MenuPageDesign = Field(default_factory=MenuPageDesign)
+
 class Menu(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     title: str
     template_id: Optional[str] = None
-    items: List[MenuItem] = []
+    items: List[MenuItem] = []  # Legacy: flat items list for backward compatibility
+    pages: List[MenuPage] = []  # New: multi-page support
     include_warning: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -126,10 +151,12 @@ class Menu(BaseModel):
 class MenuCreate(BaseModel):
     title: str
     template_id: Optional[str] = None
+    pages: Optional[List[MenuPage]] = None
 
 class MenuUpdate(BaseModel):
     title: Optional[str] = None
     items: Optional[List[MenuItem]] = None
+    pages: Optional[List[MenuPage]] = None
     include_warning: Optional[bool] = None
 
 class Template(BaseModel):
