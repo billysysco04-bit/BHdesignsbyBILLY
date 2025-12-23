@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ChefHat, Upload, FileText, Image as ImageIcon, File, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { ChefHat, Upload, FileText, Image as ImageIcon, File, CheckCircle, ArrowRight, Loader2, ChevronLeft, ChevronRight, Layers, Eye } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -14,6 +15,9 @@ export default function ImportMenu() {
   const [uploading, setUploading] = useState(false);
   const [extractedItems, setExtractedItems] = useState([]);
   const [extractedText, setExtractedText] = useState('');
+  const [extractedPages, setExtractedPages] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPagePreview, setCurrentPagePreview] = useState(0);
   const [step, setStep] = useState(1);
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -42,8 +46,15 @@ export default function ImportMenu() {
 
       setExtractedItems(response.data.items);
       setExtractedText(response.data.extracted_text);
+      setExtractedPages(response.data.pages || []);
+      setTotalPages(response.data.total_pages || 1);
+      setCurrentPagePreview(0);
       setStep(2);
-      toast.success(`Successfully extracted ${response.data.items_found} items!`);
+      
+      const pageInfo = response.data.total_pages > 1 
+        ? ` from ${response.data.total_pages} pages` 
+        : '';
+      toast.success(`Successfully extracted ${response.data.items_found} items${pageInfo}!`);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to process file');
     } finally {
@@ -67,25 +78,85 @@ export default function ImportMenu() {
 
   const handleCreateMenu = async () => {
     try {
+      // Create menu pages from extracted data
+      const menuPages = extractedPages.length > 0 
+        ? extractedPages.map((page, idx) => ({
+            id: `page-${Date.now()}-${idx}`,
+            page_number: idx + 1,
+            title: idx === 0 ? 'Imported Menu' : `Page ${idx + 1}`,
+            subtitle: '',
+            items: page.items || [],
+            design: {
+              backgroundColor: '#ffffff',
+              backgroundImage: '',
+              backgroundOpacity: 100,
+              titleFont: 'Playfair Display',
+              titleSize: 52,
+              titleColor: '#1a1a1a',
+              itemFont: 'DM Sans',
+              menuBorderStyle: 'none',
+              menuBorderWidth: 2,
+              menuBorderColor: '#1a1a1a',
+              decorativeBorder: 'none',
+              decorativeBorderColor: '#1a1a1a'
+            }
+          }))
+        : [{
+            id: `page-${Date.now()}-0`,
+            page_number: 1,
+            title: 'Imported Menu',
+            subtitle: '',
+            items: extractedItems,
+            design: {
+              backgroundColor: '#ffffff',
+              backgroundImage: '',
+              backgroundOpacity: 100,
+              titleFont: 'Playfair Display',
+              titleSize: 52,
+              titleColor: '#1a1a1a',
+              itemFont: 'DM Sans',
+              menuBorderStyle: 'none',
+              menuBorderWidth: 2,
+              menuBorderColor: '#1a1a1a',
+              decorativeBorder: 'none',
+              decorativeBorderColor: '#1a1a1a'
+            }
+          }];
+
       const response = await axios.post(
         `${API_URL}/menus`,
-        { title: 'Imported Menu' },
+        { 
+          title: 'Imported Menu',
+          pages: menuPages
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const menuId = response.data.id;
 
+      // Also update with flat items for backward compatibility
       await axios.put(
         `${API_URL}/menus/${menuId}`,
-        { items: extractedItems },
+        { 
+          items: extractedItems,
+          pages: menuPages
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success('Menu created successfully!');
+      toast.success(`Menu created with ${menuPages.length} page(s)!`);
       navigate(`/editor/${menuId}`);
     } catch (error) {
       toast.error('Failed to create menu');
     }
+  };
+
+  // Get items for current page preview
+  const getCurrentPageItems = () => {
+    if (extractedPages.length > 0 && extractedPages[currentPagePreview]) {
+      return extractedPages[currentPagePreview].items || [];
+    }
+    return extractedItems;
   };
 
   return (
@@ -105,7 +176,7 @@ export default function ImportMenu() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex items-center justify-center mb-12">
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-2 ${step >= 1 ? 'text-charcoal' : 'text-neutral-300'}`}>
@@ -130,6 +201,10 @@ export default function ImportMenu() {
             <div className="text-center">
               <h1 className="font-playfair text-4xl md:text-5xl font-bold text-charcoal mb-4">Transform Your Old Menu</h1>
               <p className="text-xl text-neutral-600 max-w-2xl mx-auto">Upload your existing menu in PDF, Word, TXT, or image format and we'll extract the items for you!</p>
+              <p className="text-sm text-emerald-600 mt-2 flex items-center justify-center gap-2">
+                <Layers className="w-4 h-4" />
+                Multi-page PDFs fully supported - all pages will be imported!
+              </p>
             </div>
 
             <div {...getRootProps()} className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
@@ -141,7 +216,7 @@ export default function ImportMenu() {
                   <>
                     <Loader2 className="w-16 h-16 text-terracotta mx-auto animate-spin" />
                     <p className="text-xl font-medium text-charcoal">Processing your upload...</p>
-                    <p className="text-neutral-500">Please wait while we extract your menu items</p>
+                    <p className="text-neutral-500">Extracting items from all pages</p>
                   </>
                 ) : (
                   <>
@@ -151,7 +226,7 @@ export default function ImportMenu() {
                       <p className="text-neutral-500">or click to browse</p>
                     </div>
                     <div className="flex items-center justify-center gap-6 text-neutral-500">
-                      <div className="flex items-center gap-2"><FileText className="w-5 h-5" /><span className="text-sm">PDF</span></div>
+                      <div className="flex items-center gap-2"><FileText className="w-5 h-5" /><span className="text-sm">PDF (multi-page)</span></div>
                       <div className="flex items-center gap-2"><ImageIcon className="w-5 h-5" /><span className="text-sm">JPEG/PNG</span></div>
                       <div className="flex items-center gap-2"><File className="w-5 h-5" /><span className="text-sm">Word/TXT</span></div>
                     </div>
@@ -172,37 +247,133 @@ export default function ImportMenu() {
             <div className="text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h1 className="font-playfair text-4xl font-bold text-charcoal mb-4">Items Extracted Successfully!</h1>
-              <p className="text-xl text-neutral-600">We found {extractedItems.length} items. Review them below before creating your menu.</p>
+              <p className="text-xl text-neutral-600">
+                We found {extractedItems.length} items
+                {totalPages > 1 && ` across ${totalPages} pages`}. 
+                Review them below before creating your menu.
+              </p>
             </div>
 
-            <div className="bg-white border border-neutral-200 rounded-xl p-6">
-              <h3 className="font-playfair text-2xl font-bold text-charcoal mb-4">Extracted Items ({extractedItems.length})</h3>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {extractedItems.map((item) => (
-                  <div key={item.id} className="flex justify-between items-start p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50" data-testid={`extracted-item-${item.id}`}>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-charcoal">{item.name}</h4>
-                        <span className="text-xs bg-neutral-100 px-2 py-1 rounded-full text-neutral-600">{item.category}</span>
-                      </div>
-                      {item.description && <p className="text-sm text-neutral-600">{item.description}</p>}
+            {/* Multi-page indicator and navigation */}
+            {totalPages > 1 && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Layers className="w-6 h-6 text-emerald-600" />
+                    <div>
+                      <p className="font-semibold text-emerald-800">Multi-Page Menu Detected</p>
+                      <p className="text-sm text-emerald-600">{totalPages} pages will be created in your menu</p>
                     </div>
-                    <div className="font-bold text-charcoal whitespace-nowrap ml-4">${item.price}</div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {extractedText && (
-              <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-6">
-                <h3 className="font-medium text-charcoal mb-2">Extracted Text Preview</h3>
-                <p className="text-sm text-neutral-600 font-mono whitespace-pre-wrap">{extractedText}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPagePreview(Math.max(0, currentPagePreview - 1))}
+                      disabled={currentPagePreview === 0}
+                      className="border-emerald-300"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-emerald-800 font-medium px-3">
+                      Page {currentPagePreview + 1} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPagePreview(Math.min(totalPages - 1, currentPagePreview + 1))}
+                      disabled={currentPagePreview >= totalPages - 1}
+                      className="border-emerald-300"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* Page tabs for multi-page view */}
+            {totalPages > 1 ? (
+              <Tabs value={`page-${currentPagePreview}`} onValueChange={(v) => setCurrentPagePreview(parseInt(v.replace('page-', '')))}>
+                <TabsList className="w-full flex flex-wrap gap-1 bg-neutral-100 p-1 rounded-lg mb-4">
+                  {extractedPages.map((page, idx) => (
+                    <TabsTrigger 
+                      key={idx} 
+                      value={`page-${idx}`}
+                      className="data-[state=active]:bg-white data-[state=active]:shadow flex-1 min-w-[80px]"
+                    >
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3" />
+                        Page {idx + 1}
+                        <span className="text-xs text-neutral-500 ml-1">({page.items?.length || 0})</span>
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {extractedPages.map((page, idx) => (
+                  <TabsContent key={idx} value={`page-${idx}`}>
+                    <div className="bg-white border border-neutral-200 rounded-xl p-6">
+                      <h3 className="font-playfair text-2xl font-bold text-charcoal mb-4">
+                        Page {idx + 1} Items ({page.items?.length || 0})
+                      </h3>
+                      <div className="space-y-4 max-h-80 overflow-y-auto">
+                        {(page.items || []).map((item) => (
+                          <div key={item.id} className="flex justify-between items-start p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-charcoal">{item.name}</h4>
+                                <span className="text-xs bg-neutral-100 px-2 py-1 rounded-full text-neutral-600">{item.category}</span>
+                              </div>
+                              {item.description && <p className="text-sm text-neutral-600">{item.description}</p>}
+                            </div>
+                            <div className="font-bold text-charcoal whitespace-nowrap ml-4">${item.price}</div>
+                          </div>
+                        ))}
+                        {(!page.items || page.items.length === 0) && (
+                          <p className="text-neutral-500 text-center py-8">No items extracted from this page</p>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              <div className="bg-white border border-neutral-200 rounded-xl p-6">
+                <h3 className="font-playfair text-2xl font-bold text-charcoal mb-4">Extracted Items ({extractedItems.length})</h3>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {extractedItems.map((item) => (
+                    <div key={item.id} className="flex justify-between items-start p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50" data-testid={`extracted-item-${item.id}`}>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-charcoal">{item.name}</h4>
+                          <span className="text-xs bg-neutral-100 px-2 py-1 rounded-full text-neutral-600">{item.category}</span>
+                        </div>
+                        {item.description && <p className="text-sm text-neutral-600">{item.description}</p>}
+                      </div>
+                      <div className="font-bold text-charcoal whitespace-nowrap ml-4">${item.price}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {extractedText && (
+              <details className="bg-neutral-50 border border-neutral-200 rounded-xl">
+                <summary className="p-4 cursor-pointer font-medium text-charcoal hover:bg-neutral-100 rounded-xl">
+                  View Extracted Text Preview
+                </summary>
+                <div className="p-4 pt-0">
+                  <p className="text-sm text-neutral-600 font-mono whitespace-pre-wrap">{extractedText}</p>
+                </div>
+              </details>
+            )}
+
             <div className="flex gap-4 justify-center">
-              <Button onClick={() => { setStep(1); setExtractedItems([]); setExtractedText(''); }} variant="outline" className="border-charcoal text-charcoal hover:bg-neutral-50 rounded-full px-8">Upload Different File</Button>
-              <Button onClick={handleCreateMenu} data-testid="create-menu-button" className="bg-terracotta text-white hover:bg-terracotta/90 rounded-full px-8">Create Menu with These Items</Button>
+              <Button onClick={() => { setStep(1); setExtractedItems([]); setExtractedText(''); setExtractedPages([]); setTotalPages(1); }} variant="outline" className="border-charcoal text-charcoal hover:bg-neutral-50 rounded-full px-8">Upload Different File</Button>
+              <Button onClick={handleCreateMenu} data-testid="create-menu-button" className="bg-terracotta text-white hover:bg-terracotta/90 rounded-full px-8">
+                Create Menu {totalPages > 1 && `(${totalPages} Pages)`}
+              </Button>
             </div>
           </motion.div>
         )}
