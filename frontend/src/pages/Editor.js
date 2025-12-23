@@ -739,113 +739,11 @@ export default function Editor() {
                     <p className="text-lg">Add menu items to see your design</p>
                   </div>
                 ) : (
-                  <div style={{ 
-                    columnCount: LAYOUTS.find(l => l.id === design.layout)?.columns || 1,
-                    columnGap: '40px',
-                    columnRule: design.layout !== 'single-column' && design.layout !== 'centered' ? '1px solid #e5e5e5' : 'none'
-                  }}>
-                    {Object.entries(groupedItems).map(([category, items], idx) => (
-                      <div key={category} style={{ 
-                        marginBottom: `${design.categorySpacing}px`,
-                        breakInside: 'avoid',
-                        pageBreakInside: 'avoid'
-                      }}>
-                        {/* Category Header */}
-                        <div style={{
-                          textAlign: design.layout === 'centered' ? 'center' : 'left',
-                          marginBottom: `${design.itemSpacing}px`,
-                          borderBottom: design.showCategoryBorder ? `1px ${design.categoryBorderStyle} ${design.categoryBorderColor}` : 'none',
-                          paddingBottom: design.showCategoryBorder ? '12px' : '0'
-                        }}>
-                          <h2 style={{
-                            fontFamily: design.categoryFont,
-                            fontSize: `${design.categorySize}px`,
-                            color: design.categoryColor,
-                            fontWeight: '700',
-                            textTransform: design.categoryUppercase ? 'uppercase' : 'none',
-                            letterSpacing: design.categoryUppercase ? '3px' : 'normal',
-                            margin: 0
-                          }}>
-                            {category}
-                          </h2>
-                        </div>
-                        
-                        {/* Menu Items */}
-                        {items.map((item, itemIdx) => (
-                          <div 
-                            key={item.id} 
-                            style={{ 
-                              marginBottom: itemIdx < items.length - 1 ? `${design.itemSpacing}px` : '0',
-                              breakInside: 'avoid',
-                              pageBreakInside: 'avoid'
-                            }}
-                          >
-                            {/* Item Name and Price Row */}
-                            <div style={{
-                              display: 'flex',
-                              justifyContent: design.layout === 'centered' ? 'center' : 'space-between',
-                              alignItems: 'baseline',
-                              gap: '8px',
-                              flexDirection: design.layout === 'centered' ? 'column' : 'row',
-                              textAlign: design.layout === 'centered' ? 'center' : 'left'
-                            }}>
-                              <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'baseline', 
-                                gap: '8px',
-                                flex: design.layout === 'centered' ? 'none' : 1,
-                                minWidth: 0
-                              }}>
-                                <h3 style={{ 
-                                  fontFamily: design.itemFont, 
-                                  fontSize: `${design.itemNameSize}px`, 
-                                  color: design.itemNameColor, 
-                                  fontWeight: '600',
-                                  margin: 0,
-                                  lineHeight: '1.3'
-                                }}>
-                                  {item.name}
-                                </h3>
-                                {/* Dot leader for single column */}
-                                {design.layout === 'single-column' && (
-                                  <span style={{
-                                    flex: 1,
-                                    borderBottom: '1px dotted #ccc',
-                                    marginBottom: '4px',
-                                    minWidth: '20px'
-                                  }} />
-                                )}
-                              </div>
-                              <span style={{ 
-                                fontFamily: design.priceFont, 
-                                fontSize: `${design.priceSize}px`, 
-                                color: design.priceColor, 
-                                fontWeight: '700',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                ${item.price}
-                              </span>
-                            </div>
-                            
-                            {/* Description */}
-                            {item.description && (
-                              <p style={{ 
-                                fontFamily: design.itemFont, 
-                                fontSize: `${design.descriptionSize}px`, 
-                                color: design.descriptionColor, 
-                                lineHeight: '1.5',
-                                margin: '4px 0 0 0',
-                                fontStyle: 'italic',
-                                textAlign: design.layout === 'centered' ? 'center' : 'left'
-                              }}>
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
+                  <MenuItemsLayout 
+                    groupedItems={groupedItems} 
+                    design={design} 
+                    layoutConfig={LAYOUTS.find(l => l.id === design.layout) || LAYOUTS[0]}
+                  />
                 )}
 
                 {/* Warning Bottom */}
