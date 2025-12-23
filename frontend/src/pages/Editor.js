@@ -732,9 +732,15 @@ export default function Editor() {
                     <p className="text-lg">Add menu items to see your design</p>
                   </div>
                 ) : (
-                  <div>
+                  <div style={{ 
+                    columnCount: LAYOUTS.find(l => l.id === design.layout)?.columns || 1,
+                    columnGap: '30px'
+                  }}>
                     {Object.entries(groupedItems).map(([category, items], idx) => (
-                      <div key={category} style={{ marginBottom: idx < Object.keys(groupedItems).length - 1 ? `${design.categorySpacing}px` : '0' }}>
+                      <div key={category} style={{ 
+                        marginBottom: idx < Object.keys(groupedItems).length - 1 ? `${design.categorySpacing}px` : '0',
+                        breakInside: 'avoid'
+                      }}>
                         <h2 style={{
                           fontFamily: design.categoryFont,
                           fontSize: `${design.categorySize}px`,
@@ -744,13 +750,23 @@ export default function Editor() {
                           textTransform: design.categoryUppercase ? 'uppercase' : 'none',
                           letterSpacing: design.categoryUppercase ? '2px' : 'normal',
                           borderBottom: design.showCategoryBorder ? `1px ${design.categoryBorderStyle} ${design.categoryBorderColor}` : 'none',
-                          paddingBottom: design.showCategoryBorder ? '10px' : '0'
+                          paddingBottom: design.showCategoryBorder ? '10px' : '0',
+                          textAlign: design.layout === 'centered' ? 'center' : 'left'
                         }}>
                           {category}
                         </h2>
                         {items.map((item, itemIdx) => (
-                          <div key={item.id} style={{ marginBottom: itemIdx < items.length - 1 ? `${design.itemSpacing}px` : '0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-                            <div style={{ flex: 1 }}>
+                          <div key={item.id} style={{ 
+                            marginBottom: itemIdx < items.length - 1 ? `${design.itemSpacing}px` : '0', 
+                            display: 'flex', 
+                            justifyContent: design.layout === 'centered' ? 'center' : 'space-between', 
+                            alignItems: 'flex-start', 
+                            gap: '16px',
+                            flexDirection: design.layout === 'centered' ? 'column' : 'row',
+                            textAlign: design.layout === 'centered' ? 'center' : 'left',
+                            breakInside: 'avoid'
+                          }}>
+                            <div style={{ flex: design.layout === 'centered' ? 'none' : 1 }}>
                               <h3 style={{ fontFamily: design.itemFont, fontSize: `${design.itemNameSize}px`, color: design.itemNameColor, fontWeight: '600', marginBottom: item.description ? '6px' : '0' }}>
                                 {item.name}
                               </h3>
