@@ -1056,7 +1056,7 @@ export default function Editor() {
                     {PAGE_SIZES.map((size) => (
                       <button
                         key={size.id}
-                        onClick={() => updateCurrentPageDesign({ pageSizeId: size.id, pageWidth: size.width, pageHeight: size.height })}
+                        onClick={() => applyPageSizeToAllPages(size.id)}
                         className={`p-2 rounded-lg border-2 transition-all text-center ${
                           design.pageSizeId === size.id
                             ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
@@ -1078,11 +1078,12 @@ export default function Editor() {
                   <h4 className="text-white font-semibold text-sm flex items-center gap-2">
                     <LayoutIcon className="w-4 h-4 text-emerald-500" />Layout Style
                   </h4>
+                  <p className="text-neutral-400 text-xs">Applied to all pages</p>
                   <div className="grid grid-cols-3 gap-2">
                     {LAYOUTS.map((layout) => (
                       <button
                         key={layout.id}
-                        onClick={() => updateCurrentPageDesign({ layout: layout.id })}
+                        onClick={() => applyLayoutToAllPages(layout.id)}
                         className={`p-3 rounded-lg border-2 transition-all ${
                           design.layout === layout.id
                             ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
