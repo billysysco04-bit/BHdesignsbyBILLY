@@ -9,7 +9,6 @@ import { useAuth } from '../context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Switch } from '../components/ui/switch';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
@@ -28,89 +27,81 @@ const LAYOUTS = [
   { id: 'single-column', name: 'Single Column', icon: '▌', columns: 1, multiplier: 1 },
   { id: 'two-column', name: 'Two Columns', icon: '▌▐', columns: 2, multiplier: 1.8 },
   { id: 'three-column', name: 'Three Columns', icon: '▌▐▐', columns: 3, multiplier: 2.5 },
-  { id: 'grid', name: 'Grid (2x2)', icon: '▚', columns: 2, multiplier: 2 },
-  { id: 'centered', name: 'Centered', icon: '◯', columns: 1, multiplier: 0.8 },
 ];
 
 export default function ImportMenu() {
   const [uploading, setUploading] = useState(false);
   const [generatingDescriptions, setGeneratingDescriptions] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [extractedItems, setExtractedItems] = useState([]);
   const [extractedPages, setExtractedPages] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPagePreview, setCurrentPagePreview] = useState(0);
-  const [step, setStep] = useState(1); // 1: Upload, 2: AI Descriptions, 3: Review & Create
+  const [step, setStep] = useState(1);
   const [selectedPageSize, setSelectedPageSize] = useState('letter');
   const [selectedLayout, setSelectedLayout] = useState('single-column');
-  const [generateDescriptions, setGenerateDescriptions] = useState(true);
   const [editingItemId, setEditingItemId] = useState(null);
   const { token } = useAuth();
   const navigate = useNavigate();
 
-  // Calculate items per page
   const getItemsPerPage = (pageSizeId, layoutId) => {
     const pageSize = PAGE_SIZES.find(p => p.id === pageSizeId) || PAGE_SIZES[0];
     const layout = LAYOUTS.find(l => l.id === layoutId) || LAYOUTS[0];
     return Math.floor(pageSize.baseItems * layout.multiplier);
   };
 
-  // Calculate pages
   const calculatePages = (items, pageSizeId, layoutId) => {
     const itemsPerPage = getItemsPerPage(pageSizeId, layoutId);
     const pages = [];
     for (let i = 0; i < items.length; i += itemsPerPage) {
-      const pageItems = items.slice(i, i + itemsPerPage);
       pages.push({
         page_number: pages.length + 1,
-        items: pageItems,
-        text: `Page ${pages.length + 1}: ${pageItems.length} items`
+        items: items.slice(i, i + itemsPerPage)
       });
     }
-    return pages.length > 0 ? pages : [{ page_number: 1, items: [], text: 'Empty page' }];
+    return pages.length > 0 ? pages : [{ page_number: 1, items: [] }];
   };
 
-  // Generate AI descriptions for all items
+  // Generate AI descriptions - FIXED endpoint path
   const generateAIDescriptions = async (items) => {
     setGeneratingDescriptions(true);
+    setGenerationProgress(0);
     const updatedItems = [...items];
     let successCount = 0;
     
-    toast.info(`Generating chef-inspired descriptions for ${items.length} items...`);
-    
     for (let i = 0; i < updatedItems.length; i++) {
       const item = updatedItems[i];
-      // Skip if already has a description
-      if (item.description && item.description.trim().length > 10) {
+      setGenerationProgress(Math.round(((i + 1) / updatedItems.length) * 100));
+      
+      // Skip if already has description
+      if (item.description && item.description.trim().length > 5) {
         successCount++;
         continue;
       }
       
       try {
+        // FIXED: Correct endpoint path
         const response = await axios.post(
-          `${API_URL}/generate-description`,
-          { dish_name: item.name, ingredients: '', style: 'chef' },
+          `${API_URL}/ai/generate-description`,
+          { dish_name: item.name, ingredients: item.ingredients || '', style: 'chef' },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        updatedItems[i] = { ...item, description: response.data.description };
-        successCount++;
         
-        // Update progress
-        if ((i + 1) % 5 === 0 || i === updatedItems.length - 1) {
-          toast.info(`Generated ${i + 1}/${updatedItems.length} descriptions...`);
+        if (response.data && response.data.description) {
+          updatedItems[i] = { ...item, description: response.data.description };
+          successCount++;
         }
       } catch (error) {
-        console.error(`Failed to generate description for ${item.name}:`, error);
-        // Keep item without description
+        console.error(`Failed for ${item.name}:`, error.response?.data || error.message);
       }
       
       // Small delay to avoid rate limiting
-      if (i < updatedItems.length - 1) {
-        await new Promise(r => setTimeout(r, 200));
-      }
+      await new Promise(r => setTimeout(r, 300));
     }
     
     setGeneratingDescriptions(false);
-    toast.success(`Generated descriptions for ${successCount} items!`);
+    setGenerationProgress(100);
+    toast.success(`Generated ${successCount} descriptions!`);
     return updatedItems;
   };
 
@@ -129,7 +120,7 @@ export default function ImportMenu() {
     try {
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i];
-        toast.info(`Processing file ${i + 1} of ${acceptedFiles.length}: ${file.name}`);
+        toast.info(`Processing: ${file.name}`);
         
         const formData = new FormData();
         formData.append('file', file);
@@ -146,30 +137,24 @@ export default function ImportMenu() {
 
       setExtractedItems(allItems);
       toast.success(`Extracted ${allItems.length} items!`);
-      
-      // Move to step 2 (AI descriptions)
       setStep(2);
-      
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to process file(s)');
+      console.error('Upload error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to process file');
     } finally {
       setUploading(false);
     }
   };
 
-  // Handle AI description generation
   const handleGenerateDescriptions = async () => {
     const itemsWithDescriptions = await generateAIDescriptions(extractedItems);
     setExtractedItems(itemsWithDescriptions);
-    
-    // Calculate pages and move to review
     const calculatedPages = calculatePages(itemsWithDescriptions, selectedPageSize, selectedLayout);
     setExtractedPages(calculatedPages);
     setTotalPages(calculatedPages.length);
     setStep(3);
   };
 
-  // Skip descriptions and go to review
   const handleSkipDescriptions = () => {
     const calculatedPages = calculatePages(extractedItems, selectedPageSize, selectedLayout);
     setExtractedPages(calculatedPages);
@@ -177,14 +162,12 @@ export default function ImportMenu() {
     setStep(3);
   };
 
-  // Update item description manually
   const handleUpdateDescription = (itemId, newDescription) => {
     setExtractedItems(items => 
       items.map(item => item.id === itemId ? { ...item, description: newDescription } : item)
     );
   };
 
-  // Recalculate pages when settings change
   const handlePageSizeChange = (sizeId) => {
     setSelectedPageSize(sizeId);
     if (step === 3 && extractedItems.length > 0) {
@@ -205,6 +188,7 @@ export default function ImportMenu() {
     }
   };
 
+  // FIXED: Accept ALL file types including images
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -213,9 +197,10 @@ export default function ImportMenu() {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
+      'image/webp': ['.webp'],
       'text/plain': ['.txt'],
       'text/csv': ['.csv'],
-      'application/vnd.ms-excel': ['.csv']
+      'application/vnd.ms-excel': ['.xls', '.csv']
     },
     multiple: true,
     disabled: uploading
@@ -224,15 +209,14 @@ export default function ImportMenu() {
   const handleCreateMenu = async () => {
     try {
       const pageSize = PAGE_SIZES.find(p => p.id === selectedPageSize) || PAGE_SIZES[0];
-      
-      // Recalculate pages with final items (including descriptions)
+      const layout = LAYOUTS.find(l => l.id === selectedLayout) || LAYOUTS[0];
       const finalPages = calculatePages(extractedItems, selectedPageSize, selectedLayout);
       
       const menuPages = finalPages.map((page, idx) => ({
         id: `page-${Date.now()}-${idx}`,
         page_number: idx + 1,
-        title: idx === 0 ? 'Menu' : '',
-        subtitle: idx === 0 ? 'A Curated Selection' : '',
+        title: idx === 0 ? 'MENU' : '',
+        subtitle: '',
         items: page.items || [],
         design: {
           backgroundColor: '#ffffff',
@@ -240,42 +224,43 @@ export default function ImportMenu() {
           backgroundImageType: 'none',
           backgroundOpacity: 100,
           titleFont: 'Playfair Display',
-          titleSize: 48,
+          titleSize: 56,
           titleColor: '#1a1a1a',
           titleAlign: 'center',
           subtitleFont: 'DM Sans',
           subtitleSize: 16,
           subtitleColor: '#666666',
           itemFont: 'DM Sans',
-          itemNameSize: 18,
+          itemNameSize: 16,
           itemNameColor: '#1a1a1a',
-          descriptionSize: 13,
-          descriptionColor: '#555555',
-          priceFont: 'Playfair Display',
-          priceSize: 18,
-          priceColor: '#c45c3e',
+          descriptionSize: 12,
+          descriptionColor: '#666666',
+          priceFont: 'DM Sans',
+          priceSize: 16,
+          priceColor: '#1a1a1a',
           categoryFont: 'Playfair Display',
-          categorySize: 24,
+          categorySize: 20,
           categoryColor: '#1a1a1a',
           categoryUppercase: true,
           pageWidth: pageSize.width,
           pageHeight: pageSize.height,
           pageSizeId: selectedPageSize,
           layout: selectedLayout,
-          padding: 50,
-          itemSpacing: 20,
-          categorySpacing: 35,
+          layoutColumns: layout.columns,
+          padding: 60,
+          itemSpacing: 16,
+          categorySpacing: 32,
           menuBorderStyle: 'none',
-          menuBorderWidth: 2,
-          menuBorderColor: '#1a1a1a',
+          menuBorderWidth: 1,
+          menuBorderColor: '#000000',
           decorativeBorder: 'none',
-          decorativeBorderColor: '#1a1a1a',
+          decorativeBorderColor: '#000000',
           showTitleBorder: true,
-          titleBorderStyle: 'solid',
-          titleBorderColor: '#cccccc',
+          titleBorderStyle: 'double',
+          titleBorderColor: '#1a1a1a',
           showCategoryBorder: true,
           categoryBorderStyle: 'solid',
-          categoryBorderColor: '#e0e0e0',
+          categoryBorderColor: '#cccccc',
           showWarning: true,
           warningPosition: 'bottom'
         }
@@ -283,7 +268,7 @@ export default function ImportMenu() {
 
       const response = await axios.post(
         `${API_URL}/menus`,
-        { title: 'Menu', pages: menuPages },
+        { title: 'MENU', pages: menuPages },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -293,7 +278,7 @@ export default function ImportMenu() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success(`Menu created with ${menuPages.length} page(s)!`);
+      toast.success(`Menu created!`);
       navigate(`/editor/${response.data.id}`);
     } catch (error) {
       toast.error('Failed to create menu');
@@ -303,371 +288,236 @@ export default function ImportMenu() {
   const currentItemsPerPage = getItemsPerPage(selectedPageSize, selectedLayout);
 
   return (
-    <div className="min-h-screen bg-paper grain">
-      <header className="border-b border-neutral-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen bg-neutral-50">
+      <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <ChefHat className="w-8 h-8 text-charcoal" />
-            <div className="flex flex-col">
-              <span className="font-playfair text-2xl font-bold text-charcoal leading-tight">MenuMaker</span>
-              <span className="text-xs text-neutral-500 -mt-1">by BHdesignsbyBILLY</span>
-            </div>
+            <ChefHat className="w-8 h-8 text-neutral-800" />
+            <span className="font-playfair text-2xl font-bold text-neutral-800">MenuMaker</span>
           </div>
-          <Button onClick={() => navigate('/dashboard')} variant="ghost" className="rounded-full">
-            Back to Dashboard
-          </Button>
+          <Button onClick={() => navigate('/dashboard')} variant="outline">Back to Dashboard</Button>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-12">
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-charcoal' : 'text-neutral-300'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-charcoal text-white' : 'bg-neutral-200'}`}>1</div>
-              <span className="font-medium">Upload</span>
-            </div>
-            <ArrowRight className="w-5 h-5 text-neutral-300" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-charcoal' : 'text-neutral-300'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-purple-600 text-white' : 'bg-neutral-200'}`}>
-                <Wand2 className="w-5 h-5" />
-              </div>
-              <span className="font-medium">AI Descriptions</span>
-            </div>
-            <ArrowRight className="w-5 h-5 text-neutral-300" />
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-charcoal' : 'text-neutral-300'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-charcoal text-white' : 'bg-neutral-200'}`}>3</div>
-              <span className="font-medium">Review & Create</span>
-            </div>
+      <div className="max-w-5xl mx-auto px-6 py-12">
+        {/* Progress */}
+        <div className="flex items-center justify-center mb-10">
+          <div className="flex items-center gap-3">
+            {[
+              { num: 1, label: 'Upload' },
+              { num: 2, label: 'AI Enhance' },
+              { num: 3, label: 'Create' }
+            ].map((s, i) => (
+              <React.Fragment key={s.num}>
+                <div className={`flex items-center gap-2 ${step >= s.num ? 'text-neutral-800' : 'text-neutral-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    step >= s.num ? 'bg-neutral-800 text-white' : 'bg-neutral-200'
+                  }`}>{s.num}</div>
+                  <span className="text-sm font-medium">{s.label}</span>
+                </div>
+                {i < 2 && <ArrowRight className="w-4 h-4 text-neutral-300" />}
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
         {/* STEP 1: Upload */}
         {step === 1 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-            <div className="text-center">
-              <h1 className="font-playfair text-4xl md:text-5xl font-bold text-charcoal mb-4">Import Your Menu</h1>
-              <p className="text-xl text-neutral-600 max-w-2xl mx-auto">Upload your menu file and we'll extract all items automatically</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-neutral-800 mb-2">Import Your Menu</h1>
+              <p className="text-neutral-600">Upload PDF, images, Word docs, or CSV spreadsheets</p>
             </div>
 
-            {/* Page Size & Layout Selection */}
-            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              <div className="bg-white border border-neutral-200 rounded-xl p-6">
-                <Label className="text-charcoal font-semibold mb-4 block flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-emerald-600" />Page Size
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
+            <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+              <div className="bg-white border rounded-lg p-4">
+                <Label className="font-medium mb-3 block">Page Size</Label>
+                <div className="space-y-2">
                   {PAGE_SIZES.map((size) => (
                     <button
                       key={size.id}
                       onClick={() => handlePageSizeChange(size.id)}
-                      className={`p-3 rounded-lg border-2 transition-all text-left ${
-                        selectedPageSize === size.id ? 'border-emerald-500 bg-emerald-50' : 'border-neutral-200 hover:border-neutral-300'
+                      className={`w-full p-2 rounded border text-left text-sm flex justify-between items-center ${
+                        selectedPageSize === size.id ? 'border-neutral-800 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-400'
                       }`}
                     >
-                      <p className={`font-medium text-sm ${selectedPageSize === size.id ? 'text-emerald-700' : 'text-charcoal'}`}>{size.name}</p>
-                      <p className="text-xs text-neutral-500">{size.label}</p>
-                      {selectedPageSize === size.id && <Check className="w-4 h-4 text-emerald-500 mt-1" />}
+                      <span>{size.name} <span className="text-neutral-500">({size.label})</span></span>
+                      {selectedPageSize === size.id && <Check className="w-4 h-4" />}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-white border border-neutral-200 rounded-xl p-6">
-                <Label className="text-charcoal font-semibold mb-4 block flex items-center gap-2">
-                  <LayoutGrid className="w-5 h-5 text-emerald-600" />Layout Style
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white border rounded-lg p-4">
+                <Label className="font-medium mb-3 block">Layout</Label>
+                <div className="space-y-2">
                   {LAYOUTS.map((layout) => (
                     <button
                       key={layout.id}
                       onClick={() => handleLayoutChange(layout.id)}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        selectedLayout === layout.id ? 'border-emerald-500 bg-emerald-50' : 'border-neutral-200 hover:border-neutral-300'
+                      className={`w-full p-2 rounded border text-left text-sm flex justify-between items-center ${
+                        selectedLayout === layout.id ? 'border-neutral-800 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-400'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{layout.icon}</span>
-                        <span className={`text-sm font-medium ${selectedLayout === layout.id ? 'text-emerald-700' : 'text-charcoal'}`}>{layout.name}</span>
-                        {selectedLayout === layout.id && <Check className="w-4 h-4 text-emerald-500" />}
-                      </div>
+                      <span>{layout.icon} {layout.name}</span>
+                      {selectedLayout === layout.id && <Check className="w-4 h-4" />}
                     </button>
                   ))}
                 </div>
+                <p className="text-xs text-neutral-500 mt-2">~{currentItemsPerPage} items per page</p>
               </div>
             </div>
 
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full">
-                <Layers className="w-4 h-4" />
-                <span className="font-medium">~{currentItemsPerPage} items per page</span>
-              </div>
-            </div>
-
-            {/* Upload Area */}
-            <div {...getRootProps()} className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
-                isDragActive ? 'border-terracotta bg-terracotta/5' : 'border-neutral-300 hover:border-charcoal hover:bg-neutral-50'
+            <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-all max-w-3xl mx-auto ${
+                isDragActive ? 'border-neutral-800 bg-neutral-100' : 'border-neutral-300 hover:border-neutral-500'
               }`}>
               <input {...getInputProps()} />
-              <div className="space-y-6">
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-16 h-16 text-terracotta mx-auto animate-spin" />
-                    <p className="text-xl font-medium text-charcoal">Processing your files...</p>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-16 h-16 text-charcoal mx-auto" />
-                    <p className="text-xl font-medium text-charcoal mb-2">{isDragActive ? 'Drop files here' : 'Drag and drop files here'}</p>
-                    <div className="flex items-center justify-center gap-4 flex-wrap text-neutral-500">
-                      <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> PDF</span>
-                      <span className="flex items-center gap-1"><ImageIcon className="w-4 h-4" /> Images</span>
-                      <span className="flex items-center gap-1"><File className="w-4 h-4" /> Word/TXT</span>
-                      <span className="flex items-center gap-1 text-emerald-600 font-medium"><FileSpreadsheet className="w-4 h-4" /> CSV</span>
-                    </div>
-                  </>
-                )}
-              </div>
+              {uploading ? (
+                <div className="space-y-3">
+                  <Loader2 className="w-10 h-10 text-neutral-600 mx-auto animate-spin" />
+                  <p className="text-neutral-600">Processing...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Upload className="w-10 h-10 text-neutral-500 mx-auto" />
+                  <p className="text-neutral-700 font-medium">Drop files here or click to browse</p>
+                  <div className="flex justify-center gap-4 text-sm text-neutral-500">
+                    <span>PDF</span>
+                    <span>•</span>
+                    <span>Images (JPG, PNG)</span>
+                    <span>•</span>
+                    <span>Word</span>
+                    <span>•</span>
+                    <span>CSV</span>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
 
         {/* STEP 2: AI Descriptions */}
         {step === 2 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wand2 className="w-10 h-10 text-purple-600" />
-              </div>
-              <h1 className="font-playfair text-4xl font-bold text-charcoal mb-4">AI-Powered Descriptions</h1>
-              <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-                Generate professional, chef-inspired descriptions for your {extractedItems.length} menu items
-              </p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="text-center mb-8">
+              <Wand2 className="w-12 h-12 text-purple-600 mx-auto mb-3" />
+              <h1 className="text-3xl font-bold text-neutral-800 mb-2">Enhance with AI</h1>
+              <p className="text-neutral-600">Generate professional descriptions for {extractedItems.length} items</p>
             </div>
 
-            {/* Preview of items */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-6 max-w-3xl mx-auto">
-              <h3 className="font-semibold text-charcoal mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-500" />
-                Items to Enhance ({extractedItems.length})
-              </h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {extractedItems.slice(0, 10).map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-charcoal">{item.name}</p>
-                      {item.description ? (
-                        <p className="text-sm text-green-600 flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Has description
-                        </p>
-                      ) : (
-                        <p className="text-sm text-purple-600 flex items-center gap-1">
-                          <Wand2 className="w-3 h-3" /> Will generate
-                        </p>
-                      )}
-                    </div>
-                    <span className="font-bold text-charcoal">${item.price}</span>
+            <div className="bg-white border rounded-lg p-6 max-w-2xl mx-auto">
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {extractedItems.map((item, i) => (
+                  <div key={item.id} className="flex justify-between items-center p-2 bg-neutral-50 rounded text-sm">
+                    <span className="font-medium">{item.name}</span>
+                    <span className="text-neutral-600">${item.price}</span>
                   </div>
                 ))}
-                {extractedItems.length > 10 && (
-                  <p className="text-center text-neutral-500 text-sm">
-                    ...and {extractedItems.length - 10} more items
-                  </p>
-                )}
               </div>
             </div>
 
-            {/* AI Generation Options */}
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 max-w-3xl mx-auto">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-6 h-6 text-purple-600" />
+            {generatingDescriptions && (
+              <div className="max-w-2xl mx-auto">
+                <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-purple-600 transition-all duration-300"
+                    style={{ width: `${generationProgress}%` }}
+                  />
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-purple-900 mb-2">Chef-Inspired AI Descriptions</h4>
-                  <p className="text-purple-700 text-sm mb-4">
-                    Our AI will create short, appetizing descriptions that highlight the key flavors and appeal of each dish. 
-                    Perfect for making your menu look professional and enticing to customers.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-purple-600">
-                    <Check className="w-4 h-4" /> Short & professional
-                    <Check className="w-4 h-4 ml-4" /> Appetizing language
-                    <Check className="w-4 h-4 ml-4" /> Print-ready
-                  </div>
-                </div>
+                <p className="text-center text-sm text-neutral-600 mt-2">
+                  Generating descriptions... {generationProgress}%
+                </p>
               </div>
-            </div>
+            )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 justify-center">
-              <Button 
-                onClick={handleSkipDescriptions} 
-                variant="outline" 
-                className="border-neutral-300 text-neutral-600 rounded-full px-8"
-                disabled={generatingDescriptions}
-              >
-                Skip Descriptions
+            <div className="flex gap-3 justify-center">
+              <Button onClick={handleSkipDescriptions} variant="outline" disabled={generatingDescriptions}>
+                Skip
               </Button>
-              <Button 
-                onClick={handleGenerateDescriptions} 
-                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-8"
-                disabled={generatingDescriptions}
-              >
-                {generatingDescriptions ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Generate Descriptions
-                  </>
-                )}
+              <Button onClick={handleGenerateDescriptions} disabled={generatingDescriptions} className="bg-purple-600 hover:bg-purple-700">
+                {generatingDescriptions ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                Generate Descriptions
               </Button>
             </div>
           </motion.div>
         )}
 
-        {/* STEP 3: Review & Create */}
+        {/* STEP 3: Review */}
         {step === 3 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-            <div className="text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h1 className="font-playfair text-4xl font-bold text-charcoal mb-4">Review Your Menu</h1>
-              <p className="text-xl text-neutral-600">
-                {extractedItems.length} items → <span className="text-emerald-600 font-bold">{totalPages} page(s)</span>
-              </p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <h1 className="text-3xl font-bold text-neutral-800 mb-2">Review Your Menu</h1>
+              <p className="text-neutral-600">{extractedItems.length} items → {totalPages} page(s)</p>
             </div>
 
-            {/* Layout Settings */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-6">
-              <h3 className="font-semibold text-charcoal mb-4 flex items-center gap-2">
-                <LayoutGrid className="w-5 h-5 text-emerald-600" />
-                Adjust Layout (pages will recalculate)
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <Label className="text-neutral-600 text-sm mb-2 block">Page Size</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {PAGE_SIZES.map((size) => (
-                      <button
-                        key={size.id}
-                        onClick={() => handlePageSizeChange(size.id)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                          selectedPageSize === size.id ? 'bg-emerald-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                        }`}
-                      >
-                        {size.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-neutral-600 text-sm mb-2 block">Layout Style</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {LAYOUTS.map((layout) => (
-                      <button
-                        key={layout.id}
-                        onClick={() => handleLayoutChange(layout.id)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${
-                          selectedLayout === layout.id ? 'bg-emerald-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                        }`}
-                      >
-                        <span>{layout.icon}</span> {layout.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <div className="bg-white border rounded-lg p-4 max-w-3xl mx-auto">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Label className="w-full text-sm text-neutral-600 mb-1">Adjust layout:</Label>
+                {LAYOUTS.map((layout) => (
+                  <button
+                    key={layout.id}
+                    onClick={() => handleLayoutChange(layout.id)}
+                    className={`px-3 py-1 rounded text-sm ${
+                      selectedLayout === layout.id ? 'bg-neutral-800 text-white' : 'bg-neutral-100 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {layout.icon} {layout.name}
+                  </button>
+                ))}
               </div>
-            </div>
 
-            {/* Page Navigation */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPagePreview(Math.max(0, currentPagePreview - 1))} disabled={currentPagePreview === 0}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-charcoal font-medium">Page {currentPagePreview + 1} of {totalPages}</span>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPagePreview(Math.min(totalPages - 1, currentPagePreview + 1))} disabled={currentPagePreview >= totalPages - 1}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-
-            {/* Items List with Editable Descriptions */}
-            <Tabs value={`page-${currentPagePreview}`} onValueChange={(v) => setCurrentPagePreview(parseInt(v.replace('page-', '')))}>
               {totalPages > 1 && (
-                <TabsList className="w-full flex flex-wrap gap-1 bg-neutral-100 p-1 rounded-lg mb-4">
-                  {extractedPages.map((page, idx) => (
-                    <TabsTrigger key={idx} value={`page-${idx}`} className="data-[state=active]:bg-white data-[state=active]:shadow flex-1 min-w-[80px]">
-                      Page {idx + 1} ({page.items?.length || 0})
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <Button size="sm" variant="outline" onClick={() => setCurrentPagePreview(p => Math.max(0, p - 1))} disabled={currentPagePreview === 0}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm">Page {currentPagePreview + 1} of {totalPages}</span>
+                  <Button size="sm" variant="outline" onClick={() => setCurrentPagePreview(p => Math.min(totalPages - 1, p + 1))} disabled={currentPagePreview >= totalPages - 1}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               )}
 
-              {extractedPages.map((page, idx) => (
-                <TabsContent key={idx} value={`page-${idx}`}>
-                  <div className="bg-white border border-neutral-200 rounded-xl p-6">
-                    <h3 className="font-playfair text-2xl font-bold text-charcoal mb-4">
-                      Page {idx + 1} ({page.items?.length || 0} items)
-                    </h3>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {(page.items || []).map((item) => (
-                        <div key={item.id} className="p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-charcoal">{item.name}</h4>
-                                <span className="text-xs bg-neutral-100 px-2 py-1 rounded-full text-neutral-600">{item.category}</span>
-                              </div>
-                            </div>
-                            <span className="font-bold text-lg text-terracotta">${item.price}</span>
-                          </div>
-                          
-                          {/* Editable Description */}
-                          {editingItemId === item.id ? (
-                            <div className="mt-2">
-                              <Textarea
-                                value={item.description || ''}
-                                onChange={(e) => handleUpdateDescription(item.id, e.target.value)}
-                                className="text-sm"
-                                rows={2}
-                                placeholder="Enter item description..."
-                              />
-                              <Button size="sm" className="mt-2" onClick={() => setEditingItemId(null)}>
-                                Done
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-start gap-2 mt-2">
-                              <p className="text-sm text-neutral-600 flex-1 italic">
-                                {item.description || <span className="text-neutral-400">No description</span>}
-                              </p>
-                              <button 
-                                onClick={() => setEditingItemId(item.id)}
-                                className="text-neutral-400 hover:text-charcoal p-1"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {(extractedPages[currentPagePreview]?.items || []).map((item) => (
+                  <div key={item.id} className="p-3 border rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-xs text-neutral-500">{item.category}</p>
+                      </div>
+                      <span className="font-bold">${item.price}</span>
                     </div>
+                    {editingItemId === item.id ? (
+                      <div className="mt-2">
+                        <Textarea
+                          value={item.description || ''}
+                          onChange={(e) => handleUpdateDescription(item.id, e.target.value)}
+                          rows={2}
+                          className="text-sm"
+                        />
+                        <Button size="sm" className="mt-1" onClick={() => setEditingItemId(null)}>Done</Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2 mt-1">
+                        <p className="text-sm text-neutral-600 italic flex-1">
+                          {item.description || <span className="text-neutral-400">No description</span>}
+                        </p>
+                        <button onClick={() => setEditingItemId(item.id)} className="text-neutral-400 hover:text-neutral-600">
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </TabsContent>
-              ))}
-            </Tabs>
+                ))}
+              </div>
+            </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => setStep(2)} variant="outline" className="border-charcoal text-charcoal rounded-full px-8">
-                Back to Descriptions
-              </Button>
-              <Button onClick={handleCreateMenu} className="bg-terracotta text-white hover:bg-terracotta/90 rounded-full px-8">
-                Create Menu ({totalPages} Page{totalPages > 1 ? 's' : ''})
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => setStep(2)} variant="outline">Back</Button>
+              <Button onClick={handleCreateMenu} className="bg-neutral-800 hover:bg-neutral-900">
+                Create Menu
               </Button>
             </div>
           </motion.div>
