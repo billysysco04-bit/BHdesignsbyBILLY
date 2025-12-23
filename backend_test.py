@@ -1,6 +1,7 @@
 import requests
 import sys
 import json
+import time
 from datetime import datetime
 
 class MenuAPITester:
@@ -11,6 +12,8 @@ class MenuAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.p0_fixes_tested = 0
+        self.p0_fixes_passed = 0
 
     def log_test(self, name, success, details=""):
         """Log test result"""
