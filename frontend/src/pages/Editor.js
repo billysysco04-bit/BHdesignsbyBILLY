@@ -864,7 +864,9 @@ export default function Editor() {
               className="shadow-2xl relative"
               style={{
                 width: `${design.pageWidth}px`,
-                minHeight: '900px',
+                height: `${design.pageHeight}px`,
+                maxHeight: `${design.pageHeight}px`,
+                overflow: 'hidden',
                 backgroundColor: design.backgroundColor,
                 backgroundImage: design.backgroundImage ? `url(${design.backgroundImage})` : 'none',
                 backgroundSize: 'cover',
