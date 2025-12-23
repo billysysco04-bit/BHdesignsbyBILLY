@@ -263,7 +263,8 @@ async def create_menu(menu_data: MenuCreate, user_id: str = Depends(get_current_
     menu = Menu(
         user_id=user_id,
         title=menu_data.title,
-        template_id=menu_data.template_id
+        template_id=menu_data.template_id,
+        pages=menu_data.pages or []
     )
     
     menu_dict = menu.model_dump()
