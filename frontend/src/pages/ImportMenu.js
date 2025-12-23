@@ -100,7 +100,9 @@ export default function ImportMenu() {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
-      'text/plain': ['.txt']
+      'text/plain': ['.txt'],
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.csv']
     },
     multiple: true,
     disabled: uploading
