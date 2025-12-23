@@ -739,8 +739,17 @@ async def upload_menu_file(
                     "text": extracted_text[:300] + "..." if len(extracted_text) > 300 else extracted_text,
                     "items": page_items
                 })
+        elif file.content_type in ['text/csv', 'application/vnd.ms-excel'] or (file.filename and file.filename.endswith('.csv')):
+            # CSV: Direct parsing without AI
+            csv_items = parse_csv_menu_items(file_bytes)
+            extracted_text = f"CSV import: {len(csv_items)} items found"
+            pages_data.append({
+                "page_number": 1,
+                "text": f"Imported {len(csv_items)} items from CSV spreadsheet",
+                "items": csv_items
+            })
         
-        if not extracted_text:
+        if not extracted_text and not pages_data:
             raise HTTPException(status_code=400, detail="No text could be extracted from the file")
         
         # Flatten all items for backward compatibility
