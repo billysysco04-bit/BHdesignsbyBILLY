@@ -211,32 +211,83 @@ def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
     Expected columns: name, price, description (optional), category (optional)
     """
     try:
-        # Decode and parse CSV
-        content = file_bytes.decode('utf-8-sig')  # Handle BOM
-        reader = csv.DictReader(io.StringIO(content))
+        # Try different encodings
+        content = None
+        for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+            try:
+                content = file_bytes.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if not content:
+            raise HTTPException(status_code=400, detail="Could not decode CSV file")
+        
+        logging.info(f"CSV content preview: {content[:200]}")
+        
+        # Try to detect delimiter
+        first_line = content.split('\n')[0]
+        delimiter = ','
+        if ';' in first_line and ',' not in first_line:
+            delimiter = ';'
+        elif '\t' in first_line:
+            delimiter = '\t'
+        
+        reader = csv.DictReader(io.StringIO(content), delimiter=delimiter)
         
         items = []
+        row_count = 0
         for row in reader:
-            # Normalize column names (case-insensitive)
-            row_lower = {k.lower().strip(): v.strip() for k, v in row.items() if k}
+            row_count += 1
+            # Normalize column names (case-insensitive, strip whitespace)
+            row_lower = {}
+            for k, v in row.items():
+                if k:
+                    row_lower[k.lower().strip()] = (v or '').strip()
             
-            # Get name - required
-            name = row_lower.get('name') or row_lower.get('item') or row_lower.get('dish') or row_lower.get('menu item')
+            logging.info(f"Row {row_count} keys: {list(row_lower.keys())}")
+            
+            # Get name - try multiple column name variations
+            name = (row_lower.get('name') or row_lower.get('item') or row_lower.get('dish') or 
+                   row_lower.get('menu item') or row_lower.get('item name') or 
+                   row_lower.get('dish name') or row_lower.get('product') or
+                   row_lower.get('food') or row_lower.get('menu'))
+            
             if not name:
+                # Try first column if no header matches
+                first_val = list(row.values())[0] if row else None
+                if first_val and first_val.strip():
+                    name = first_val.strip()
+            
+            if not name:
+                logging.info(f"Row {row_count}: No name found, skipping")
                 continue
             
-            # Get price - required
-            price = row_lower.get('price') or row_lower.get('cost') or row_lower.get('amount')
+            # Get price - try multiple column name variations
+            price = (row_lower.get('price') or row_lower.get('cost') or row_lower.get('amount') or
+                    row_lower.get('unit price') or row_lower.get('item price') or
+                    row_lower.get('$') or row_lower.get('usd'))
+            
             if not price:
-                continue
-            # Clean price (remove $, etc)
+                # Try second column if no header matches
+                vals = list(row.values())
+                if len(vals) > 1 and vals[1]:
+                    price = vals[1].strip()
+            
+            if not price:
+                logging.info(f"Row {row_count}: No price found for {name}, using 0.00")
+                price = "0.00"
+            
+            # Clean price (remove $, commas, etc)
             price = re.sub(r'[^\d.]', '', str(price))
             if not price:
-                continue
+                price = "0.00"
             
             # Get optional fields
-            description = row_lower.get('description') or row_lower.get('desc') or row_lower.get('details') or ''
-            category = row_lower.get('category') or row_lower.get('type') or row_lower.get('section') or 'Main Course'
+            description = (row_lower.get('description') or row_lower.get('desc') or 
+                          row_lower.get('details') or row_lower.get('info') or '')
+            category = (row_lower.get('category') or row_lower.get('type') or 
+                       row_lower.get('section') or row_lower.get('group') or 'Main Course')
             
             items.append({
                 'id': str(uuid.uuid4()),
@@ -245,7 +296,9 @@ def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
                 'description': description,
                 'category': category
             })
+            logging.info(f"Row {row_count}: Added item '{name}' @ ${price}")
         
+        logging.info(f"CSV parsing complete: {len(items)} items from {row_count} rows")
         return items
     except Exception as e:
         logging.error(f"CSV parsing error: {str(e)}")
