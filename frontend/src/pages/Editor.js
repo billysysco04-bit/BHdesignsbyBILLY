@@ -624,19 +624,23 @@ export default function Editor() {
                 disabled={currentPageIndex === 0}
                 variant="outline"
                 size="sm"
-                className="border-neutral-600 text-white"
+                className="border-neutral-600 text-white hover:bg-neutral-700 disabled:opacity-50"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Prev
               </Button>
-              <span className="text-white font-medium">Page {currentPageIndex + 1} of {pages.length}</span>
+              <div className="bg-neutral-800 px-4 py-2 rounded-lg">
+                <span className="text-white font-medium">Page {currentPageIndex + 1} of {pages.length}</span>
+              </div>
               <Button
                 onClick={() => setCurrentPageIndex(Math.min(pages.length - 1, currentPageIndex + 1))}
                 disabled={currentPageIndex >= pages.length - 1}
                 variant="outline"
                 size="sm"
-                className="border-neutral-600 text-white"
+                className="border-neutral-600 text-white hover:bg-neutral-700 disabled:opacity-50"
               >
-                <ChevronRight className="w-4 h-4" />
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           )}
