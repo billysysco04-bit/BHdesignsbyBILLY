@@ -206,6 +206,51 @@ async def require_admin(user_id: str = Depends(get_current_user)) -> str:
         raise HTTPException(status_code=403, detail="Admin privileges required")
     return user_id
 
+def parse_csv_menu_items(file_bytes: bytes) -> List[dict]:
+    """Parse menu items from CSV file.
+    Expected columns: name, price, description (optional), category (optional)
+    """
+    try:
+        # Decode and parse CSV
+        content = file_bytes.decode('utf-8-sig')  # Handle BOM
+        reader = csv.DictReader(io.StringIO(content))
+        
+        items = []
+        for row in reader:
+            # Normalize column names (case-insensitive)
+            row_lower = {k.lower().strip(): v.strip() for k, v in row.items() if k}
+            
+            # Get name - required
+            name = row_lower.get('name') or row_lower.get('item') or row_lower.get('dish') or row_lower.get('menu item')
+            if not name:
+                continue
+            
+            # Get price - required
+            price = row_lower.get('price') or row_lower.get('cost') or row_lower.get('amount')
+            if not price:
+                continue
+            # Clean price (remove $, etc)
+            price = re.sub(r'[^\d.]', '', str(price))
+            if not price:
+                continue
+            
+            # Get optional fields
+            description = row_lower.get('description') or row_lower.get('desc') or row_lower.get('details') or ''
+            category = row_lower.get('category') or row_lower.get('type') or row_lower.get('section') or 'Main Course'
+            
+            items.append({
+                'id': str(uuid.uuid4()),
+                'name': name,
+                'price': price,
+                'description': description,
+                'category': category
+            })
+        
+        return items
+    except Exception as e:
+        logging.error(f"CSV parsing error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {str(e)}")
+
 @api_router.post("/auth/register", response_model=AuthResponse)
 async def register(user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
