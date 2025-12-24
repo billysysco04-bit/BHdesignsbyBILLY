@@ -740,24 +740,132 @@ export default function MenuAnalysis() {
                       >
                         <Tabs defaultValue="ingredients" className="w-full">
                           <TabsList className="bg-zinc-800/50 mb-4">
-                            <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
+                            <TabsTrigger value="ingredients">
+                              <Package className="w-4 h-4 mr-1" />
+                              Ingredients
+                            </TabsTrigger>
                             <TabsTrigger value="competitors">Competitor Prices</TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="ingredients">
-                            {item.ingredients?.length > 0 ? (
-                              <div className="grid md:grid-cols-2 gap-2">
-                                {item.ingredients.map((ing, i) => (
-                                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30">
-                                    <div>
-                                      <p className="text-sm text-white">{ing.name}</p>
-                                      <p className="text-xs text-zinc-500">{ing.portion}</p>
-                                    </div>
-                                    <p className="font-mono text-amber-400">${ing.estimated_cost?.toFixed(2)}</p>
+                            <div className="space-y-3">
+                              {/* Edit toggle button */}
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-sm text-zinc-400">
+                                  {editingIngredients[item.id] 
+                                    ? `Editing ingredients • New Food Cost: $${calculateEditedFoodCost(item.id).toFixed(2)}`
+                                    : `${item.ingredients?.length || 0} ingredients • Food Cost: $${item.food_cost?.toFixed(2)}`
+                                  }
+                                </p>
+                                {!editingIngredients[item.id] ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => startEditingIngredients(item)}
+                                    className="border-zinc-700 text-zinc-400 hover:text-white"
+                                  >
+                                    <Edit3 className="w-3 h-3 mr-1" />
+                                    Edit Prices
+                                  </Button>
+                                ) : (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => cancelEditingIngredients(item.id)}
+                                      className="border-zinc-700 text-zinc-400 hover:text-white"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => saveIngredients(item.id)}
+                                      disabled={savingIngredients[item.id]}
+                                      className="bg-emerald-600 hover:bg-emerald-700"
+                                    >
+                                      {savingIngredients[item.id] ? (
+                                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <Save className="w-3 h-3 mr-1" />
+                                      )}
+                                      Save Changes
+                                    </Button>
                                   </div>
-                                ))}
+                                )}
                               </div>
-                            ) : (
+
+                              {/* Ingredients list */}
+                              {editingIngredients[item.id] ? (
+                                // Editable mode
+                                <div className="space-y-2">
+                                  {(ingredientEdits[item.id] || []).map((ing, i) => (
+                                    <div key={i} className="flex items-center gap-2 p-3 rounded-lg bg-zinc-800/50">
+                                      <Input
+                                        type="text"
+                                        placeholder="Ingredient name"
+                                        value={ing.name}
+                                        onChange={(e) => updateIngredientName(item.id, i, e.target.value)}
+                                        className="flex-1 h-8 bg-zinc-900 border-zinc-700 text-white text-sm"
+                                      />
+                                      <Input
+                                        type="text"
+                                        placeholder="Portion"
+                                        value={ing.portion || ""}
+                                        onChange={(e) => updateIngredientPortion(item.id, i, e.target.value)}
+                                        className="w-24 h-8 bg-zinc-900 border-zinc-700 text-white text-sm"
+                                      />
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-zinc-500">$</span>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          placeholder="0.00"
+                                          value={ing.estimated_cost || ""}
+                                          onChange={(e) => updateIngredientCost(item.id, i, e.target.value)}
+                                          className="w-20 h-8 bg-zinc-900 border-zinc-700 text-amber-400 font-mono text-sm"
+                                        />
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => removeIngredient(item.id, i)}
+                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => addIngredient(item.id)}
+                                    className="w-full border-dashed border-zinc-700 text-zinc-400 hover:text-white"
+                                  >
+                                    + Add Ingredient
+                                  </Button>
+                                </div>
+                              ) : (
+                                // View mode
+                                item.ingredients?.length > 0 ? (
+                                  <div className="grid md:grid-cols-2 gap-2">
+                                    {item.ingredients.map((ing, i) => (
+                                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30">
+                                        <div>
+                                          <p className="text-sm text-white">{ing.name}</p>
+                                          <p className="text-xs text-zinc-500">{ing.portion}</p>
+                                        </div>
+                                        <p className="font-mono text-amber-400">${ing.estimated_cost?.toFixed(2)}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-zinc-500 text-sm">No ingredient data available</p>
+                                )
+                              )}
+                            </div>
+                          </TabsContent>
                               <p className="text-sm text-zinc-500">No ingredient data available</p>
                             )}
                           </TabsContent>
