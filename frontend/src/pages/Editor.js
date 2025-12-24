@@ -142,11 +142,27 @@ const DEFAULT_PAGE_DESIGN = {
 // ============= HELPER COMPONENTS =============
 
 // Professional print-ready menu layout component
+// STRICT LAYOUT RULES:
+// 1. Items flow left→right, then top→bottom (reading order)
+// 2. Two-column: Top-left → Top-right → Next row left → Next row right
+// 3. Items never split across pages
+// 4. Clean pagination with no overflow/clipping
+
 const MenuItemsLayout = ({ groupedItems, design, layoutConfig }) => {
   const categories = Object.entries(groupedItems);
   const columns = layoutConfig?.columns || 1;
   const isCentered = layoutConfig?.centered || design.layout === 'centered';
-  const isGrid = layoutConfig?.grid;
+  
+  // Flatten all items with their category headers for row-based rendering
+  const allElements = [];
+  categories.forEach(([category, items]) => {
+    // Add category header as an element
+    allElements.push({ type: 'category', category, key: `cat-${category}` });
+    // Add each item
+    items.forEach((item) => {
+      allElements.push({ type: 'item', item, category, key: item.id });
+    });
+  });
   
   // For single column or centered - use simple linear layout
   if (columns === 1 || isCentered) {
@@ -165,46 +181,124 @@ const MenuItemsLayout = ({ groupedItems, design, layoutConfig }) => {
     );
   }
   
-  // For multi-column layouts - use CSS Grid for balanced distribution
-  // Distribute categories evenly across columns
-  const columnArrays = Array.from({ length: columns }, () => []);
+  // For multi-column layouts - ROW-BASED rendering (left→right, top→bottom)
+  // Group items into rows of N columns
+  const rows = [];
+  let currentCategory = null;
+  let itemBuffer = [];
   
-  // Simple round-robin distribution for balanced columns
-  categories.forEach((categoryData, index) => {
-    columnArrays[index % columns].push(categoryData);
+  // Process items by category, creating rows that flow left-to-right
+  categories.forEach(([category, items]) => {
+    // Flush any remaining items from previous category
+    if (itemBuffer.length > 0) {
+      // Pad the last row if needed
+      while (itemBuffer.length < columns) {
+        itemBuffer.push(null);
+      }
+      rows.push({ type: 'items', items: [...itemBuffer], category: currentCategory });
+      itemBuffer = [];
+    }
+    
+    // Add category header row (spans all columns)
+    rows.push({ type: 'category', category, key: `cat-${category}` });
+    currentCategory = category;
+    
+    // Add items in rows of N columns (left→right flow)
+    items.forEach((item) => {
+      itemBuffer.push(item);
+      if (itemBuffer.length === columns) {
+        rows.push({ type: 'items', items: [...itemBuffer], category });
+        itemBuffer = [];
+      }
+    });
   });
   
+  // Flush remaining items
+  if (itemBuffer.length > 0) {
+    while (itemBuffer.length < columns) {
+      itemBuffer.push(null);
+    }
+    rows.push({ type: 'items', items: [...itemBuffer], category: currentCategory });
+  }
+  
+  const compact = columns >= 3;
+  const columnGap = columns >= 3 ? '24px' : '32px';
+  
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: `repeat(${columns}, 1fr)`,
-      gap: '40px',
-      alignItems: 'start'
-    }}>
-      {columnArrays.map((columnCategories, colIdx) => (
-        <div 
-          key={colIdx} 
-          style={{ 
-            paddingLeft: colIdx > 0 ? '20px' : '0',
-            borderLeft: colIdx > 0 ? '1px solid #e5e5e5' : 'none'
-          }}
-        >
-          {columnCategories.map(([category, items]) => (
-            <CategoryBlock 
-              key={category} 
-              category={category} 
-              items={items} 
-              design={design}
-              compact={columns >= 3}
-            />
-          ))}
-        </div>
-      ))}
+    <div style={{ width: '100%' }}>
+      {rows.map((row, rowIdx) => {
+        if (row.type === 'category') {
+          // Category header spans full width
+          return (
+            <div 
+              key={row.key} 
+              style={{
+                marginTop: rowIdx > 0 ? `${design.categorySpacing}px` : '0',
+                marginBottom: `${Math.max(12, design.itemSpacing - 8)}px`,
+                borderBottom: design.showCategoryBorder ? `1px ${design.categoryBorderStyle} ${design.categoryBorderColor}` : 'none',
+                paddingBottom: design.showCategoryBorder ? '12px' : '0',
+                breakInside: 'avoid',
+                pageBreakInside: 'avoid'
+              }}
+            >
+              <h2 style={{
+                fontFamily: design.categoryFont,
+                fontSize: compact ? `${Math.max(16, design.categorySize - 6)}px` : `${design.categorySize}px`,
+                color: design.categoryColor,
+                fontWeight: '700',
+                textTransform: design.categoryUppercase ? 'uppercase' : 'none',
+                letterSpacing: design.categoryUppercase ? '2px' : 'normal',
+                margin: 0,
+                lineHeight: 1.2
+              }}>
+                {row.category}
+              </h2>
+            </div>
+          );
+        }
+        
+        // Item row - CSS Grid for perfect alignment
+        return (
+          <div 
+            key={`row-${rowIdx}`}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${columns}, 1fr)`,
+              gap: columnGap,
+              marginBottom: `${design.itemSpacing}px`,
+              breakInside: 'avoid',
+              pageBreakInside: 'avoid'
+            }}
+          >
+            {row.items.map((item, colIdx) => (
+              <div 
+                key={item?.id || `empty-${rowIdx}-${colIdx}`}
+                style={{
+                  paddingLeft: colIdx > 0 ? '16px' : '0',
+                  borderLeft: colIdx > 0 ? '1px solid #e5e5e5' : 'none',
+                  minHeight: item ? 'auto' : '0'
+                }}
+              >
+                {item && (
+                  <MenuItemBlock 
+                    item={item} 
+                    design={design} 
+                    isLast={false}
+                    isCentered={false}
+                    compact={compact}
+                    showDotLeader={false}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-// Category block component with header and items
+// Category block component with header and items (for single-column only)
 const CategoryBlock = ({ category, items, design, isCentered = false, compact = false }) => (
   <div style={{ 
     marginBottom: `${design.categorySpacing}px`,
@@ -241,13 +335,14 @@ const CategoryBlock = ({ category, items, design, isCentered = false, compact = 
         isLast={itemIdx === items.length - 1}
         isCentered={isCentered}
         compact={compact}
+        showDotLeader={!isCentered && design.layout === 'single-column'}
       />
     ))}
   </div>
 );
 
 // Individual menu item component
-const MenuItemBlock = ({ item, design, isLast, isCentered = false, compact = false }) => (
+const MenuItemBlock = ({ item, design, isLast, isCentered = false, compact = false, showDotLeader = false }) => (
   <div style={{ 
     marginBottom: isLast ? '0' : `${design.itemSpacing}px`,
     breakInside: 'avoid',
@@ -279,8 +374,8 @@ const MenuItemBlock = ({ item, design, isLast, isCentered = false, compact = fal
         }}>
           {item.name}
         </h3>
-        {/* Dot leader line - professional look */}
-        {!isCentered && design.layout === 'single-column' && (
+        {/* Dot leader line - for single column only */}
+        {showDotLeader && (
           <span style={{
             flex: 1,
             borderBottom: '1px dotted #bbb',
