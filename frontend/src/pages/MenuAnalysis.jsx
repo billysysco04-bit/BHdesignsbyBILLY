@@ -32,7 +32,11 @@ import {
   ChevronUp,
   Utensils,
   Target,
-  BarChart3
+  BarChart3,
+  Edit3,
+  Save,
+  X,
+  Package
 } from "lucide-react";
 
 export default function MenuAnalysis() {
@@ -47,6 +51,9 @@ export default function MenuAnalysis() {
   const [expandedItems, setExpandedItems] = useState({});
   const [priceDecisions, setPriceDecisions] = useState({});
   const [customPrices, setCustomPrices] = useState({});
+  const [editingIngredients, setEditingIngredients] = useState({});
+  const [ingredientEdits, setIngredientEdits] = useState({});
+  const [savingIngredients, setSavingIngredients] = useState({});
 
   useEffect(() => {
     fetchMenu();
