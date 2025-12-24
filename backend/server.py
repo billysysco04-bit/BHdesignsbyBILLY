@@ -548,6 +548,77 @@ async def get_menu(job_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Menu job not found")
     return job
 
+# Model for ingredient update
+class IngredientUpdate(BaseModel):
+    name: str
+    portion: Optional[str] = None
+    estimated_cost: float
+
+class ItemIngredientsUpdate(BaseModel):
+    ingredients: List[IngredientUpdate]
+
+@api_router.put("/menus/{job_id}/items/{item_id}/ingredients")
+async def update_item_ingredients(
+    job_id: str, 
+    item_id: str, 
+    update: ItemIngredientsUpdate, 
+    user: dict = Depends(get_current_user)
+):
+    """Update ingredient prices for a menu item and recalculate food cost"""
+    job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Menu job not found")
+    
+    items = job.get("items", [])
+    item_found = False
+    
+    for item in items:
+        if item["id"] == item_id:
+            item_found = True
+            # Update ingredients
+            item["ingredients"] = [ing.model_dump() for ing in update.ingredients]
+            
+            # Recalculate food cost
+            new_food_cost = sum(ing.estimated_cost for ing in update.ingredients)
+            item["food_cost"] = round(new_food_cost, 2)
+            
+            # Recalculate food cost percentage
+            if item.get("current_price", 0) > 0:
+                item["food_cost_pct"] = round((new_food_cost / item["current_price"]) * 100, 1)
+            
+            # Recalculate suggested price (target 30% food cost)
+            if new_food_cost > 0:
+                item["suggested_price"] = round(new_food_cost / 0.30, 2)
+            
+            # Recalculate profit per plate
+            if item.get("approved_price"):
+                item["profit_per_plate"] = round(item["approved_price"] - new_food_cost, 2)
+            elif item.get("current_price"):
+                item["profit_per_plate"] = round(item["current_price"] - new_food_cost, 2)
+            
+            break
+    
+    if not item_found:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    # Update the menu job
+    await db.menu_jobs.update_one(
+        {"id": job_id},
+        {
+            "$set": {
+                "items": items,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Return the updated item
+    updated_item = next((i for i in items if i["id"] == item_id), None)
+    return {
+        "message": "Ingredients updated successfully",
+        "item": updated_item
+    }
+
 @api_router.post("/menus/{job_id}/approve")
 async def approve_prices(job_id: str, approvals: List[PriceApproval], user: dict = Depends(get_current_user)):
     job = await db.menu_jobs.find_one({"id": job_id, "user_id": user["id"]}, {"_id": 0})
