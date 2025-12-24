@@ -1033,10 +1033,24 @@ export default function Editor() {
                 </div>
               )}
 
-              {/* Menu Content */}
-              <div style={{ position: 'relative', zIndex: 1, padding: `${design.padding}px` }}>
+              {/* Menu Content - Flex container for proper layout */}
+              <div style={{ 
+                position: 'relative', 
+                zIndex: 1, 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: `${design.padding}px`,
+                boxSizing: 'border-box'
+              }}>
                 {/* Title */}
-                <div className="mb-10" style={{ textAlign: design.titleAlign, borderBottom: design.showTitleBorder ? `2px ${design.titleBorderStyle} ${design.titleBorderColor}` : 'none', paddingBottom: design.showTitleBorder ? '20px' : '0' }}>
+                <div style={{ 
+                  textAlign: design.titleAlign, 
+                  borderBottom: design.showTitleBorder ? `2px ${design.titleBorderStyle} ${design.titleBorderColor}` : 'none', 
+                  paddingBottom: design.showTitleBorder ? '20px' : '0',
+                  marginBottom: '24px',
+                  flexShrink: 0
+                }}>
                   <h1 style={{ fontFamily: design.titleFont, fontSize: `${design.titleSize}px`, color: design.titleColor, fontWeight: 'bold', lineHeight: 1.2, marginBottom: '8px' }}>
                     {design.title}
                   </h1>
@@ -1045,46 +1059,70 @@ export default function Editor() {
                   </p>
                 </div>
 
-                {/* Warning Top */}
+                {/* Warning Top (if position is top) */}
                 {design.showWarning && design.warningPosition === 'top' && (
-                  <div className="mb-8 p-4 bg-orange-100 border-2 border-orange-400 rounded-lg">
-                    <p className="text-orange-900 text-xs leading-relaxed font-medium">
-                      <strong>FOOD SAFETY WARNING:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
-                    </p>
-                  </div>
-                )}
-
-                {/* Items */}
-                {Object.keys(groupedItems).length === 0 ? (
-                  <div className="text-center py-20" style={{ color: design.descriptionColor }}>
-                    <p className="text-lg">Add menu items to see your design</p>
-                  </div>
-                ) : (
-                  <MenuItemsLayout 
-                    groupedItems={groupedItems} 
-                    design={design} 
-                    layoutConfig={LAYOUTS.find(l => l.id === design.layout) || LAYOUTS[0]}
-                  />
-                )}
-
-                {/* Warning Bottom */}
-                {design.showWarning && design.warningPosition === 'bottom' && (
-                  <div style={{ 
-                    marginTop: '40px', 
-                    padding: '16px', 
-                    backgroundColor: '#fef3c7', 
+                  <div style={{
+                    marginBottom: '24px',
+                    padding: '12px 16px',
+                    backgroundColor: '#fef3c7',
                     border: '1px solid #f59e0b',
-                    borderRadius: '8px'
+                    borderRadius: '6px',
+                    flexShrink: 0
                   }}>
                     <p style={{ 
                       color: '#92400e', 
-                      fontSize: '11px', 
-                      lineHeight: '1.5',
+                      fontSize: '10px', 
+                      lineHeight: '1.4',
                       margin: 0,
                       textAlign: 'center'
                     }}>
                       <strong>CONSUMER ADVISORY:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
                     </p>
+                  </div>
+                )}
+
+                {/* Items Container - Takes remaining space, clips overflow */}
+                <div style={{ 
+                  flex: 1,
+                  overflow: 'hidden',
+                  minHeight: 0
+                }}>
+                  {Object.keys(groupedItems).length === 0 ? (
+                    <div className="text-center py-20" style={{ color: design.descriptionColor }}>
+                      <p className="text-lg">Add menu items to see your design</p>
+                    </div>
+                  ) : (
+                    <MenuItemsLayout 
+                      groupedItems={groupedItems} 
+                      design={design} 
+                      layoutConfig={LAYOUTS.find(l => l.id === design.layout) || LAYOUTS[0]}
+                    />
+                  )}
+                </div>
+
+                {/* Warning Bottom - Always at page bottom */}
+                {design.showWarning && design.warningPosition === 'bottom' && (
+                  <div style={{ 
+                    marginTop: 'auto',
+                    paddingTop: '16px',
+                    flexShrink: 0
+                  }}>
+                    <div style={{
+                      padding: '12px 16px',
+                      backgroundColor: '#fef3c7',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '6px'
+                    }}>
+                      <p style={{ 
+                        color: '#92400e', 
+                        fontSize: '10px', 
+                        lineHeight: '1.4',
+                        margin: 0,
+                        textAlign: 'center'
+                      }}>
+                        <strong>CONSUMER ADVISORY:</strong> Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
