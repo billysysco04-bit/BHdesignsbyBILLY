@@ -866,9 +866,6 @@ export default function MenuAnalysis() {
                               )}
                             </div>
                           </TabsContent>
-                              <p className="text-sm text-zinc-500">No ingredient data available</p>
-                            )}
-                          </TabsContent>
                           
                           <TabsContent value="competitors">
                             {item.competitor_prices?.length > 0 ? (
