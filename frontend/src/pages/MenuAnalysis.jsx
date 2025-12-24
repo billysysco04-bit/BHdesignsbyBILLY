@@ -201,6 +201,104 @@ export default function MenuAnalysis() {
     }));
   };
 
+  // Ingredient editing functions
+  const startEditingIngredients = (item) => {
+    setEditingIngredients(prev => ({ ...prev, [item.id]: true }));
+    setIngredientEdits(prev => ({
+      ...prev,
+      [item.id]: item.ingredients?.map(ing => ({ ...ing })) || []
+    }));
+  };
+
+  const cancelEditingIngredients = (itemId) => {
+    setEditingIngredients(prev => ({ ...prev, [itemId]: false }));
+    setIngredientEdits(prev => {
+      const newEdits = { ...prev };
+      delete newEdits[itemId];
+      return newEdits;
+    });
+  };
+
+  const updateIngredientCost = (itemId, ingredientIndex, newCost) => {
+    setIngredientEdits(prev => {
+      const ingredients = [...(prev[itemId] || [])];
+      ingredients[ingredientIndex] = {
+        ...ingredients[ingredientIndex],
+        estimated_cost: parseFloat(newCost) || 0
+      };
+      return { ...prev, [itemId]: ingredients };
+    });
+  };
+
+  const updateIngredientName = (itemId, ingredientIndex, newName) => {
+    setIngredientEdits(prev => {
+      const ingredients = [...(prev[itemId] || [])];
+      ingredients[ingredientIndex] = {
+        ...ingredients[ingredientIndex],
+        name: newName
+      };
+      return { ...prev, [itemId]: ingredients };
+    });
+  };
+
+  const updateIngredientPortion = (itemId, ingredientIndex, newPortion) => {
+    setIngredientEdits(prev => {
+      const ingredients = [...(prev[itemId] || [])];
+      ingredients[ingredientIndex] = {
+        ...ingredients[ingredientIndex],
+        portion: newPortion
+      };
+      return { ...prev, [itemId]: ingredients };
+    });
+  };
+
+  const addIngredient = (itemId) => {
+    setIngredientEdits(prev => ({
+      ...prev,
+      [itemId]: [...(prev[itemId] || []), { name: "", portion: "", estimated_cost: 0 }]
+    }));
+  };
+
+  const removeIngredient = (itemId, ingredientIndex) => {
+    setIngredientEdits(prev => {
+      const ingredients = [...(prev[itemId] || [])];
+      ingredients.splice(ingredientIndex, 1);
+      return { ...prev, [itemId]: ingredients };
+    });
+  };
+
+  const saveIngredients = async (itemId) => {
+    setSavingIngredients(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const response = await axios.put(
+        `${API}/menus/${jobId}/items/${itemId}/ingredients`,
+        { ingredients: ingredientEdits[itemId] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Update menu state with the new item data
+      setMenu(prev => ({
+        ...prev,
+        items: prev.items.map(item => 
+          item.id === itemId ? response.data.item : item
+        )
+      }));
+      
+      setEditingIngredients(prev => ({ ...prev, [itemId]: false }));
+      toast.success("Ingredients updated! Food cost recalculated.");
+    } catch (error) {
+      console.error("Failed to save ingredients:", error);
+      toast.error("Failed to save ingredients");
+    } finally {
+      setSavingIngredients(prev => ({ ...prev, [itemId]: false }));
+    }
+  };
+
+  const calculateEditedFoodCost = (itemId) => {
+    const ingredients = ingredientEdits[itemId] || [];
+    return ingredients.reduce((sum, ing) => sum + (parseFloat(ing.estimated_cost) || 0), 0);
+  };
+
   const setDecision = (itemId, decision) => {
     setPriceDecisions(prev => ({
       ...prev,
